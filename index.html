@@ -409,26 +409,37 @@ function makeGasStore(apiUrl){
   setInterval(fetchList, 8000);
   return {
     subscribe(fn){ listeners.add(fn); fn(cache); return ()=>listeners.delete(fn); },
-    // Each write updates the local cache immediately (instant UI feedback) instead of
-    // waiting on a second round trip to re-fetch the whole list — Apps Script calls are
-    // slow, so that second trip was the main source of lag. The background poll above
-    // still reconciles with the server (and other viewers' changes) every 8s.
+    // Apps Script itself takes ~1.5-2s per call — nothing client-side changes that. So
+    // these apply the change to the local cache and notify listeners FIRST (instant UI),
+    // then send it to the server in the background and roll back only on failure. The
+    // 8s background poll reconciles with the server and other viewers either way.
     async add(data){
-      const r = await post({action:'create', data});
+      const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
       const now = new Date().toISOString();
-      cache = [...cache, Object.assign({}, data, {id:r.id, createdAt:now, updatedAt:now})];
+      cache = [...cache, Object.assign({}, data, {id:tempId, createdAt:now, updatedAt:now})];
       notify();
-      return r.id;
+      post({action:'create', data}).then(r=>{
+        cache = cache.map(j => j.id===tempId ? Object.assign({}, j, {id:r.id}) : j);
+        notify();
+      }).catch(()=>{
+        cache = cache.filter(j => j.id!==tempId);
+        notify();
+      });
+      return tempId;
     },
     async update(id, data){
-      await post({action:'update', id, data});
+      const prev = cache.find(j=>j.id===id);
       cache = cache.map(j => j.id===id ? Object.assign({}, j, data, {updatedAt:new Date().toISOString()}) : j);
       notify();
+      post({action:'update', id, data}).catch(()=>{
+        if (prev){ cache = cache.map(j => j.id===id ? prev : j); notify(); }
+      });
     },
     async remove(id){
-      await post({action:'delete', id});
+      const prevCache = cache;
       cache = cache.filter(j => j.id!==id);
       notify();
+      post({action:'delete', id}).catch(()=>{ cache = prevCache; notify(); });
     },
   };
 }
