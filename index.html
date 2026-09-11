@@ -1,0 +1,1054 @@
+<title>工事台帳</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root{
+  --bg:#F6F4EF;
+  --surface:#FFFFFF;
+  --surface-2:#FBFAF6;
+  --ink:#20242B;
+  --ink-muted:#6B6F78;
+  --ink-faint:#9A9DA5;
+  --line:#E3DED2;
+  --line-strong:#D2CBB9;
+  --accent:#2A5C8A;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#E7EEF5;
+  --danger:#B5473A;
+  --danger-soft:#F6E7E4;
+  --status-quote:#8A8172;
+  --status-quote-soft:#EFEBE2;
+  --status-ordered:#2A5C8A;
+  --status-ordered-soft:#E4EDF5;
+  --status-done:#3D7A55;
+  --status-done-soft:#E4F1E8;
+  --status-paid:#6552A0;
+  --status-paid-soft:#EAE6F4;
+  --shadow: 0 1px 2px rgba(32,36,43,0.06), 0 6px 18px -8px rgba(32,36,43,0.18);
+  --radius: 10px;
+  --font-display:'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --font-mono:'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1B1D22;
+    --surface:#24272E;
+    --surface-2:#2A2D35;
+    --ink:#EDEBE5;
+    --ink-muted:#9DA2AC;
+    --ink-faint:#6E7280;
+    --line:#383B44;
+    --line-strong:#474B56;
+    --accent:#7FADD6;
+    --accent-ink:#0E1520;
+    --accent-soft:#28394A;
+    --danger:#E08A7C;
+    --danger-soft:#3A2622;
+    --status-quote:#B3AB9B;
+    --status-quote-soft:#33322B;
+    --status-ordered:#7FADD6;
+    --status-ordered-soft:#22303F;
+    --status-done:#79C296;
+    --status-done-soft:#20362A;
+    --status-paid:#B0A2DE;
+    --status-paid-soft:#2E2A42;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px -8px rgba(0,0,0,0.45);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1B1D22;
+  --surface:#24272E;
+  --surface-2:#2A2D35;
+  --ink:#EDEBE5;
+  --ink-muted:#9DA2AC;
+  --ink-faint:#6E7280;
+  --line:#383B44;
+  --line-strong:#474B56;
+  --accent:#7FADD6;
+  --accent-ink:#0E1520;
+  --accent-soft:#28394A;
+  --danger:#E08A7C;
+  --danger-soft:#3A2622;
+  --status-quote:#B3AB9B;
+  --status-quote-soft:#33322B;
+  --status-ordered:#7FADD6;
+  --status-ordered-soft:#22303F;
+  --status-done:#79C296;
+  --status-done-soft:#20362A;
+  --status-paid:#B0A2DE;
+  --status-paid-soft:#2E2A42;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 20px -8px rgba(0,0,0,0.45);
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-display);
+  -webkit-font-smoothing:antialiased;
+}
+.app{max-width:1320px; margin:0 auto; padding:28px 24px 64px;}
+
+/* header */
+.topbar{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:22px;}
+.brand h1{font-size:1.5rem; font-weight:900; margin:0 0 2px; letter-spacing:.01em; text-wrap:balance;}
+.brand p{margin:0; color:var(--ink-muted); font-size:.86rem;}
+.topbar-actions{display:flex; align-items:center; gap:10px;}
+.btn{
+  font-family:var(--font-display); font-weight:700; font-size:.86rem; cursor:pointer;
+  border-radius:8px; padding:9px 16px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink);
+  transition:transform .12s ease, background .15s ease;
+}
+.btn:hover{background:var(--surface-2);}
+.btn:active{transform:translateY(1px);}
+.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.btn-primary{background:var(--accent); color:var(--accent-ink); border-color:transparent;}
+.btn-primary:hover{filter:brightness(1.06);}
+.btn-ghost{background:transparent; border-color:transparent; color:var(--ink-muted);}
+.btn-ghost:hover{color:var(--ink); background:var(--surface-2);}
+.btn-danger{color:var(--danger); border-color:var(--danger);}
+.btn-danger:hover{background:var(--danger-soft);}
+.btn-sm{padding:5px 10px; font-size:.76rem; border-radius:6px;}
+
+/* stat strip */
+.view-tabs{display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--line);}
+.view-tab{
+  font-family:var(--font-display); font-weight:700; font-size:.86rem; color:var(--ink-muted);
+  background:none; border:none; padding:9px 4px; margin-right:14px; cursor:pointer; position:relative; top:1px;
+  border-bottom:2px solid transparent;
+}
+.view-tab:hover{color:var(--ink);}
+.view-tab[aria-selected="true"]{color:var(--accent); border-bottom-color:var(--accent);}
+.view-tab .count{
+  font-family:var(--font-mono); font-size:.72rem; color:var(--ink-faint); margin-left:5px;
+}
+
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:12px; margin-bottom:20px;}
+.stat-tile{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; display:flex; flex-direction:column; gap:4px;
+}
+.stat-tile .n{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:1.5rem; font-weight:600; line-height:1;}
+.stat-tile .l{font-size:.74rem; color:var(--ink-muted); letter-spacing:.03em;}
+.stat-tile.total .n{color:var(--accent);}
+.stat-dot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px;}
+
+/* filter bar */
+.filters{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; align-items:center;}
+.filters select, .filters input[type=search]{
+  font-family:var(--font-display); font-size:.84rem; padding:8px 10px; border-radius:8px;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink);
+}
+.filters input[type=search]{min-width:220px; flex:1 1 220px;}
+.sample-note{
+  display:flex; align-items:center; gap:10px; background:var(--accent-soft); color:var(--accent);
+  border-radius:8px; padding:8px 12px; font-size:.8rem; font-weight:500; margin-bottom:16px;
+}
+.sample-note button{margin-left:auto;}
+
+/* board */
+.board{display:grid; grid-template-columns:repeat(4,minmax(250px,1fr)); gap:14px; overflow-x:auto; padding-bottom:8px;}
+.column{background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px; min-height:120px; display:flex; flex-direction:column; gap:10px;}
+.column-head{display:flex; align-items:baseline; justify-content:space-between; padding:4px 4px 6px; border-bottom:2px solid var(--col-color); }
+.column-head .name{font-weight:700; font-size:.9rem; display:flex; align-items:center; gap:7px;}
+.column-head .sub{font-family:var(--font-mono); font-size:.72rem; color:var(--ink-muted); font-variant-numeric:tabular-nums;}
+.cards{display:flex; flex-direction:column; gap:10px;}
+.card{
+  background:var(--surface); border:1px solid var(--line); border-top:3px solid var(--col-color);
+  border-radius:9px; padding:11px 12px; cursor:pointer; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; gap:6px; transition:transform .12s ease;
+}
+.card:hover{transform:translateY(-1px);}
+.card:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.card .property{font-weight:700; font-size:.92rem; text-wrap:balance;}
+.card .desc{font-size:.8rem; color:var(--ink-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.card .meta{display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:.76rem; color:var(--ink-muted); margin-top:2px;}
+.card .due-row{display:flex; align-items:center; gap:7px; font-size:.74rem; color:var(--ink-muted);}
+.card .due-row input.due-input{
+  font-family:var(--font-mono); font-size:.74rem; padding:3px 6px; border-radius:6px;
+  border:1px solid var(--line); background:var(--surface-2); color:var(--ink); flex:1; min-width:0;
+}
+.card .due-row input.due-input:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+.card .amount{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-weight:600; color:var(--ink);}
+.card .money-row{
+  display:flex; justify-content:space-between; align-items:center; gap:8px;
+  font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:.78rem;
+  padding-top:6px; margin-top:2px; border-top:1px dashed var(--line);
+}
+.card .money-row .cost{color:var(--ink-muted);}
+.card .money-row .profit{font-weight:700;}
+.card .money-row .profit.pos{color:var(--status-done);}
+.card .money-row .profit.neg{color:var(--danger);}
+.card .foot{display:flex; align-items:center; justify-content:space-between; margin-top:2px;}
+.card .badges{display:flex; gap:6px; align-items:center; font-size:.72rem; color:var(--ink-faint);}
+.card .sample-pill{background:var(--accent-soft); color:var(--accent); border-radius:5px; padding:1px 6px; font-size:.68rem; font-weight:700;}
+.card .advance{
+  border:1px solid var(--line-strong); background:var(--surface); border-radius:6px; padding:3px 8px; font-size:.72rem;
+  font-family:var(--font-display); font-weight:600; cursor:pointer; color:var(--ink-muted);
+}
+.card .advance:hover{color:var(--accent); border-color:var(--accent);}
+.card .advance.closeout{background:var(--status-paid-soft); color:var(--status-paid); border-color:transparent; font-weight:700;}
+.card .advance.closeout:hover{filter:brightness(1.08);}
+.empty-col{color:var(--ink-faint); font-size:.78rem; text-align:center; padding:18px 6px;}
+
+/* archive view */
+.archive-head{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px;}
+.archive-head h2{font-size:1.15rem; font-weight:900; margin:0 0 2px;}
+.archive-head p{margin:0; color:var(--ink-muted); font-size:.84rem;}
+.archive-search{font-family:var(--font-display); font-size:.84rem; padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); min-width:220px;}
+.archive-table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--surface);}
+table.archive-table{width:100%; border-collapse:collapse; font-size:.83rem; white-space:nowrap;}
+table.archive-table th{
+  text-align:left; font-size:.72rem; letter-spacing:.03em; color:var(--ink-muted); font-weight:700;
+  padding:10px 14px; border-bottom:1px solid var(--line); background:var(--surface-2); position:sticky; top:0;
+}
+table.archive-table td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top;}
+table.archive-table tbody tr{cursor:pointer;}
+table.archive-table tbody tr:hover{background:var(--surface-2);}
+table.archive-table tbody tr:last-child td{border-bottom:none;}
+table.archive-table .num{font-family:var(--font-mono); font-variant-numeric:tabular-nums; text-align:right;}
+table.archive-table .profit.pos{color:var(--status-done); font-weight:700;}
+table.archive-table .profit.neg{color:var(--danger); font-weight:700;}
+table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--ink-muted);}
+.archive-empty{padding:48px 20px; text-align:center; color:var(--ink-muted);}
+
+.board-empty{
+  background:var(--surface); border:1px dashed var(--line-strong); border-radius:12px;
+  padding:48px 20px; text-align:center; color:var(--ink-muted);
+}
+.board-empty p{margin:0 0 14px;}
+
+/* modal */
+.overlay{
+  position:fixed; inset:0; background:rgba(20,22,26,0.44); display:flex; align-items:center; justify-content:center;
+  padding:24px; z-index:50;
+}
+.modal{
+  background:var(--surface); border-radius:14px; width:100%; max-width:560px; max-height:88vh; overflow-y:auto;
+  box-shadow:0 20px 50px -12px rgba(0,0,0,0.35); border:1px solid var(--line);
+}
+.modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 20px 8px;}
+.modal-head h2{font-size:1.1rem; margin:0; font-weight:900;}
+.modal-body{padding:6px 20px 20px; display:flex; flex-direction:column; gap:14px;}
+.field{display:flex; flex-direction:column; gap:5px;}
+.field label{font-size:.76rem; color:var(--ink-muted); font-weight:700; letter-spacing:.02em;}
+.field input, .field select, .field textarea{
+  font-family:var(--font-display); font-size:.88rem; padding:9px 11px; border-radius:8px;
+  border:1px solid var(--line); background:var(--surface-2); color:var(--ink); width:100%;
+}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent;}
+.field textarea{resize:vertical; min-height:64px; font-family:var(--font-display);}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.row-property{display:grid; grid-template-columns:2fr 1fr; gap:12px;}
+.contractor-rows{display:flex; flex-direction:column; gap:8px;}
+.contractor-row{display:grid; grid-template-columns:1fr 130px 32px; gap:8px; align-items:center;}
+.contractor-row .c-amount{font-family:var(--font-mono); text-align:right;}
+.contractor-row .c-remove{
+  width:32px; height:32px; border-radius:7px; border:1px solid var(--line-strong); background:var(--surface-2);
+  color:var(--ink-muted); cursor:pointer; font-size:.8rem;
+}
+.contractor-row .c-remove:hover{color:var(--danger); border-color:var(--danger);}
+.profit-summary{
+  display:flex; justify-content:space-between; gap:12px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:8px; padding:10px 13px; font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:.85rem;
+}
+.profit-summary b{font-weight:700;}
+.profit-summary #profitSum.pos{color:var(--status-done);}
+.profit-summary #profitSum.neg{color:var(--danger);}
+.status-picker{display:flex; gap:6px; flex-wrap:wrap;}
+.status-chip{
+  border:1.5px solid var(--line-strong); border-radius:20px; padding:6px 13px; font-size:.8rem; font-weight:700;
+  cursor:pointer; background:var(--surface-2); color:var(--ink-muted);
+}
+.status-chip[aria-pressed="true"]{background:var(--chip-color-soft); border-color:var(--chip-color); color:var(--chip-color);}
+.photo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; border-radius:8px; transition:background .12s ease;}
+.photo-grid.drag-over{outline:2px dashed var(--accent); outline-offset:2px; background:var(--accent-soft);}
+.photo-thumb{position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; border:1px solid var(--line); background:var(--surface-2);}
+.photo-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+.pdf-thumb{
+  width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; background:var(--surface-2); color:var(--ink-muted); text-decoration:none; font-size:1.3rem;
+}
+.pdf-thumb span{font-size:.6rem; font-weight:700; letter-spacing:.03em;}
+.photo-thumb button{
+  position:absolute; top:3px; right:3px; width:20px; height:20px; border-radius:50%; border:none;
+  background:rgba(20,22,26,0.62); color:#fff; font-size:.72rem; line-height:1; cursor:pointer;
+}
+.photo-add{
+  aspect-ratio:1; border-radius:8px; border:1.5px dashed var(--line-strong); background:transparent;
+  color:var(--ink-muted); font-size:1.4rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.photo-add:hover{border-color:var(--accent); color:var(--accent);}
+.hint{font-size:.74rem; color:var(--ink-faint);}
+.modal-actions{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px;}
+.modal-actions .right{display:flex; gap:8px;}
+
+.visually-hidden{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);}
+
+@media (max-width: 880px){
+  .board{grid-template-columns:1fr; }
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .row2{grid-template-columns:1fr;}
+  .row-property{grid-template-columns:1fr;}
+  .contractor-row{grid-template-columns:1fr 100px 32px;}
+  table.archive-table{white-space:normal;}
+}
+</style>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <h1>工事台帳</h1>
+      <p>管理物件の工事案件を、進捗・金額・写真つきで一元管理します</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary" id="newJobBtn">＋ 新規登録</button>
+    </div>
+  </div>
+
+  <div class="view-tabs" role="tablist">
+    <button class="view-tab" id="tabBoard" role="tab" data-view="board">工事ボード</button>
+    <button class="view-tab" id="tabArchive" role="tab" data-view="archive">終了案件<span class="count" id="archiveCount"></span></button>
+  </div>
+
+  <div id="boardSection">
+    <div class="stats" id="stats"></div>
+
+    <div id="sampleNote" class="sample-note" hidden>
+      サンプルデータを表示しています。実際の工事情報に置き換えてください。
+      <button class="btn btn-sm" id="clearSampleBtn">サンプルを削除</button>
+    </div>
+
+    <div class="filters">
+      <input type="search" id="searchInput" placeholder="物件名・工事内容・業者で検索">
+      <select id="propertyFilter"><option value="">物件：すべて</option></select>
+      <select id="contractorFilter"><option value="">業者：すべて</option></select>
+    </div>
+
+    <div id="boardWrap"></div>
+  </div>
+
+  <div id="archiveSection" hidden></div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+const STATUSES = [
+  { key:'quote',       label:'見積中',   color:'var(--status-quote)',    soft:'var(--status-quote-soft)' },
+  { key:'ordered',     label:'発注済',   color:'var(--status-ordered)',  soft:'var(--status-ordered-soft)' },
+  { key:'done',        label:'完工',     color:'var(--status-done)',     soft:'var(--status-done-soft)' },
+  { key:'paid',        label:'入金済み', color:'var(--status-paid)',     soft:'var(--status-paid-soft)' },
+];
+const statusByKey = Object.fromEntries(STATUSES.map(s=>[s.key,s]));
+// Google Apps Script Web App URL (see Code.gs) — paste the deployed /exec URL here so
+// anyone with this page's link can use it without a Claude account.
+const API_URL = "https://script.google.com/macros/s/AKfycbxtqh0RM7sb2LoMnNUdrwKhpzNsRGujsyuSxyvu71QMvsxyxDmHWTA2cg860pB7iDGX/exec";
+let currentView = 'board'; // 'board' | 'archive'
+const activeJobs = () => jobs.filter(j=>j.status!=='closed');
+const closedJobs = () => jobs.filter(j=>j.status==='closed');
+
+let jobs = [];
+let store = null;
+let assetsApi = null;
+let editingId = null; // null = new job modal closed; 'new' = creating; else job id
+let pendingPhotos = []; // asset ids attached while modal open (mirrors doc)
+let pendingEstimateDocs = []; // {id,type} attached while modal open (mirrors doc.estimateDocs)
+let pendingInvoiceDocs = []; // {id,type} attached while modal open (mirrors doc.invoiceDocs)
+let contractorRows = []; // [{name, amount}] attached while modal open (mirrors doc.contractors)
+
+const fmtYen = n => '¥' + Number(n||0).toLocaleString('ja-JP');
+const fmtDate = d => d ? d.slice(5).replace('-','/') : '—';
+const fmtCreated = j => j.createdAt ? j.createdAt.slice(5,10).replace('-','/') : '—';
+const fmtProperty = j => (j.property || '(物件未設定)') + (j.unit ? ' ' + j.unit : '');
+const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- storage layer: Google Apps Script backend, falling back to localStorage ---------- */
+function makeLocalStore(){
+  const KEY = 'koji_daichou_jobs_v1';
+  const listeners = new Set();
+  function read(){ try{ return JSON.parse(localStorage.getItem(KEY) || '[]'); }catch(e){ return []; } }
+  function write(list){ localStorage.setItem(KEY, JSON.stringify(list)); listeners.forEach(fn=>fn(list)); }
+  return {
+    subscribe(fn){ listeners.add(fn); fn(read()); return ()=>listeners.delete(fn); },
+    async add(data){ const list=read(); const id='local-'+Date.now()+'-'+Math.random().toString(36).slice(2,7); list.push({id, ...data}); write(list); return id; },
+    async update(id, data){ const list=read(); const i=list.findIndex(j=>j.id===id); if(i>-1){ list[i]={...list[i], ...data}; write(list);} },
+    async remove(id){ write(read().filter(j=>j.id!==id)); },
+  };
+}
+
+function makeGasStore(apiUrl){
+  const listeners = new Set();
+  let cache = [];
+  async function fetchList(){
+    try{
+      const res = await fetch(apiUrl + '?action=list');
+      const data = await res.json();
+      cache = Array.isArray(data) ? data : [];
+      listeners.forEach(fn=>fn(cache));
+    }catch(e){ /* keep showing last known data; next poll retries */ }
+  }
+  async function post(body){
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'}, // avoids a CORS preflight Apps Script can't answer
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }
+  fetchList();
+  setInterval(fetchList, 8000);
+  return {
+    subscribe(fn){ listeners.add(fn); fn(cache); return ()=>listeners.delete(fn); },
+    async add(data){ const r = await post({action:'create', data}); await fetchList(); return r.id; },
+    async update(id, data){ await post({action:'update', id, data}); await fetchList(); },
+    async remove(id){ await post({action:'delete', id}); await fetchList(); },
+  };
+}
+
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function makeGasAssets(apiUrl){
+  async function post(body){
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }
+  return {
+    async upload(file){
+      const base64 = await fileToBase64(file);
+      const r = await post({ action:'uploadFile', filename:file.name, mimeType:file.type||'application/octet-stream', base64 });
+      if (r.error) throw new Error(r.error);
+      return { id:r.id, url:r.url, contentType:r.contentType };
+    },
+    async delete(id){ await post({ action:'deleteFile', id }); },
+  };
+}
+
+/* ---------- rendering ---------- */
+function jobCost(j){ return (j.contractors||[]).reduce((s,c)=>s+Number(c.amount||0),0); }
+function jobProfit(j){ return Number(j.billingAmount||0) - jobCost(j); }
+
+function computeStats(list){
+  const counts = Object.fromEntries(STATUSES.map(s=>[s.key,0]));
+  let cost = 0, profit = 0;
+  list.forEach(j=>{
+    counts[j.status] = (counts[j.status]||0)+1;
+    cost += jobCost(j);
+    profit += jobProfit(j);
+  });
+  return { counts, cost, profit };
+}
+
+function renderStats(list){
+  const { counts, cost, profit } = computeStats(list);
+  const el = document.getElementById('stats');
+  el.innerHTML = STATUSES.map(s=>`
+    <div class="stat-tile">
+      <div class="n"><span class="stat-dot" style="background:${s.color}"></span>${counts[s.key]}</div>
+      <div class="l">${s.label}</div>
+    </div>
+  `).join('') + `
+    <div class="stat-tile">
+      <div class="n">${fmtYen(cost)}</div>
+      <div class="l">発注金額合計</div>
+    </div>
+    <div class="stat-tile total">
+      <div class="n" style="color:${profit<0?'var(--danger)':'var(--accent)'}">${fmtYen(profit)}</div>
+      <div class="l">利益合計</div>
+    </div>
+  `;
+}
+
+function populateFilterOptions(list){
+  const propSel = document.getElementById('propertyFilter');
+  const conSel = document.getElementById('contractorFilter');
+  const props = [...new Set(list.map(j=>j.property).filter(Boolean))].sort();
+  const cons = [...new Set(list.flatMap(j=>(j.contractors||[]).map(c=>c.name)).filter(Boolean))].sort();
+  const keep = (sel) => sel.value;
+  const pv = keep(propSel), cv = keep(conSel);
+  propSel.innerHTML = '<option value="">物件：すべて</option>' + props.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  conSel.innerHTML = '<option value="">業者：すべて</option>' + cons.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  propSel.value = props.includes(pv) ? pv : '';
+  conSel.value = cons.includes(cv) ? cv : '';
+}
+
+function filteredJobs(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const prop = document.getElementById('propertyFilter').value;
+  const con = document.getElementById('contractorFilter').value;
+  return activeJobs().filter(j=>{
+    const names = (j.contractors||[]).map(c=>c.name);
+    if (prop && j.property !== prop) return false;
+    if (con && !names.includes(con)) return false;
+    if (q){
+      const hay = [j.property, j.unit, j.description, names.join(' '), j.notes].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderBoard(){
+  const list = filteredJobs();
+  const wrap = document.getElementById('boardWrap');
+  if (activeJobs().length === 0){
+    wrap.innerHTML = `<div class="board-empty"><p>まだ工事案件が登録されていません。</p>
+      <button class="btn btn-primary" id="emptyNewBtn">＋ 最初の工事を登録する</button></div>`;
+    document.getElementById('emptyNewBtn').onclick = openNewModal;
+    return;
+  }
+  wrap.innerHTML = `<div class="board">${STATUSES.map(s=>{
+    const items = list.filter(j=>j.status===s.key).sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||''));
+    const profitSubtotal = items.reduce((sum,j)=>sum+jobProfit(j),0);
+    return `
+    <div class="column" style="--col-color:${s.color}">
+      <div class="column-head">
+        <span class="name"><span class="stat-dot" style="background:${s.color}"></span>${s.label}<span style="color:var(--ink-faint); font-weight:400;">（${items.length}）</span></span>
+        <span class="sub" style="color:${profitSubtotal<0?'var(--danger)':'inherit'}">利益 ${fmtYen(profitSubtotal)}</span>
+      </div>
+      <div class="cards">
+        ${items.length ? items.map(j=>cardHtml(j,s)).join('') : `<div class="empty-col">案件なし</div>`}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+
+  wrap.querySelectorAll('.card').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      if (e.target.closest('.advance') || e.target.closest('.due-row')) return;
+      openEditModal(el.dataset.id);
+    });
+    el.tabIndex = 0;
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.target.closest('.due-row')) openEditModal(el.dataset.id); });
+  });
+  wrap.querySelectorAll('.due-input').forEach(inp=>{
+    inp.addEventListener('click', e=>e.stopPropagation());
+    inp.addEventListener('change', async e=>{
+      e.stopPropagation();
+      await store.update(inp.dataset.id, { dueDate: e.target.value, updatedAt: new Date().toISOString() });
+    });
+  });
+  wrap.querySelectorAll('.advance:not(.closeout)').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const job = jobs.find(j=>j.id===id);
+      const idx = STATUSES.findIndex(s=>s.key===job.status);
+      const next = STATUSES[idx+1];
+      if (!next) return;
+      const update = { status: next.key, updatedAt: new Date().toISOString() };
+      if (next.key === 'ordered' && !job.orderDate) update.orderDate = new Date().toISOString().slice(0,10);
+      await store.update(id, update);
+    });
+  });
+  wrap.querySelectorAll('.advance.closeout').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      await store.update(id, { status: 'closed', closedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      showView('archive');
+    });
+  });
+}
+
+function cardHtml(j, s){
+  const nextIdx = STATUSES.findIndex(x=>x.key===j.status)+1;
+  const next = STATUSES[nextIdx];
+  let actionBtn = '';
+  if (j.status === 'paid'){
+    actionBtn = `<button class="advance closeout" data-id="${esc(j.id)}">計上済みにする</button>`;
+  } else if (j.status === 'done'){
+    actionBtn = `<button class="advance" data-id="${esc(j.id)}">入金済みにする</button>`;
+  } else if (next){
+    actionBtn = `<button class="advance" data-id="${esc(j.id)}">→ ${next.label}</button>`;
+  }
+  const photoCount = (j.photos||[]).length;
+  const names = (j.contractors||[]).map(c=>c.name).filter(Boolean);
+  const contractorLabel = names.length === 0 ? '業者未定' : names.length === 1 ? names[0] : `${names[0]} ほか${names.length-1}社`;
+  const cost = jobCost(j);
+  const profit = jobProfit(j);
+  const showMoney = cost || j.billingAmount;
+  return `
+  <div class="card" style="--col-color:${s.color}" data-id="${esc(j.id)}">
+    <div class="property">${esc(fmtProperty(j))}</div>
+    <div class="desc">${esc(j.description || '')}</div>
+    <div class="meta">
+      <span>${esc(contractorLabel)}</span>
+      <span>${j.billingAmount ? '請求 '+fmtYen(j.billingAmount) : ''}</span>
+    </div>
+    ${showMoney ? `<div class="money-row">
+      <span class="cost">発注 ${fmtYen(cost)}</span>
+      <span class="profit ${profit<0?'neg':profit>0?'pos':''}">利益 ${fmtYen(profit)}</span>
+    </div>` : ''}
+    <div class="due-row">
+      <label for="due-${esc(j.id)}">完工予定</label>
+      <input type="date" class="due-input" id="due-${esc(j.id)}" data-id="${esc(j.id)}" value="${esc(j.dueDate||'')}">
+    </div>
+    <div class="foot">
+      <span class="badges">
+        ${j.isSample ? '<span class="sample-pill">サンプル</span>' : ''}
+        ${j.assignee ? '担当:'+esc(j.assignee) : ''}
+        ${photoCount ? '📷'+photoCount : ''}
+        <span>登録 ${fmtCreated(j)}</span>
+      </span>
+      ${actionBtn}
+    </div>
+  </div>`;
+}
+
+/* ---------- modal (add/edit) ---------- */
+function openNewModal(){
+  editingId = 'new';
+  pendingPhotos = [];
+  pendingEstimateDocs = [];
+  pendingInvoiceDocs = [];
+  contractorRows = [{name:'', amount:''}];
+  renderModal({
+    property:'', description:'', billingAmount:'', orderDate:'', dueDate:'',
+    status:'quote', assignee: '川手', notes:'', photos:[]
+  }, true);
+}
+function openEditModal(id){
+  const job = jobs.find(j=>j.id===id);
+  if (!job) return;
+  editingId = id;
+  pendingPhotos = [...(job.photos||[])];
+  pendingEstimateDocs = [...(job.estimateDocs||[])];
+  pendingInvoiceDocs = [...(job.invoiceDocs||[])];
+  contractorRows = (job.contractors && job.contractors.length) ? job.contractors.map(c=>({...c})) : [{name:'', amount:''}];
+  renderModal(job, false);
+}
+function closeModal(){
+  editingId = null;
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+function renderModal(job, isNew){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="overlay" id="overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle">${isNew ? '工事を新規登録' : '工事を編集'}</h2>
+        <button class="btn btn-ghost btn-sm" id="closeBtn" aria-label="閉じる">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="row-property">
+          <div class="field">
+            <label for="f-property">物件名</label>
+            <input id="f-property" type="text" value="${esc(job.property)}" placeholder="例：グリーンハイツ">
+          </div>
+          <div class="field">
+            <label for="f-unit">号室</label>
+            <input id="f-unit" type="text" value="${esc(job.unit)}" placeholder="例：203">
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-description">工事内容</label>
+          <textarea id="f-description" placeholder="例：エアコン新規交換工事（6畳用）">${esc(job.description)}</textarea>
+        </div>
+        <div class="field">
+          <label>発注業者・金額（複数可）</label>
+          <div class="contractor-rows" id="contractorRows"></div>
+          <button type="button" class="btn btn-sm" id="addContractorBtn" style="align-self:flex-start;">＋ 業者を追加</button>
+        </div>
+        <div class="field">
+          <label for="f-billing">家主請求金額（円）</label>
+          <input id="f-billing" type="number" min="0" step="1" value="${job.billingAmount ?? ''}" placeholder="0">
+        </div>
+        <div class="profit-summary">
+          <span>発注合計 <b id="costSum">¥0</b></span>
+          <span>利益 <b id="profitSum">¥0</b></span>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="f-orderDate">発注日</label>
+            <input id="f-orderDate" type="date" value="${esc(job.orderDate)}">
+          </div>
+          <div class="field">
+            <label for="f-dueDate">完了予定日</label>
+            <input id="f-dueDate" type="date" value="${esc(job.dueDate)}">
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-assignee">担当者</label>
+          <input id="f-assignee" type="text" maxlength="12" value="${esc(job.assignee)}" placeholder="担当スタッフ名">
+        </div>
+        <div class="field">
+          <label>進捗ステータス</label>
+          <div class="status-picker" id="statusPicker">
+            ${STATUSES.map(s=>`<button type="button" class="status-chip" data-key="${s.key}" style="--chip-color:${s.color}; --chip-color-soft:${s.soft}" aria-pressed="${s.key===job.status}">${s.label}</button>`).join('')}
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>見積書</label>
+            <div class="photo-grid" id="estimateGrid"></div>
+            <span class="hint" id="estimateHint"></span>
+          </div>
+          <div class="field">
+            <label>請求書</label>
+            <div class="photo-grid" id="invoiceGrid"></div>
+            <span class="hint" id="invoiceHint"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label>写真</label>
+          <div class="photo-grid" id="photoGrid"></div>
+          <span class="hint" id="photoHint"></span>
+        </div>
+        <div class="field">
+          <label for="f-notes">備考</label>
+          <textarea id="f-notes" placeholder="申し送り事項など">${esc(job.notes)}</textarea>
+        </div>
+        <div class="modal-actions">
+          <div>${isNew ? '' : `<button class="btn btn-danger btn-sm" id="deleteBtn">この工事を削除</button>`}</div>
+          <div class="right">
+            <button class="btn" id="cancelBtn">キャンセル</button>
+            <button class="btn btn-primary" id="saveBtn">${isNew ? '登録する' : '保存する'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  let currentStatus = job.status;
+  root.querySelectorAll('.status-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      currentStatus = chip.dataset.key;
+      root.querySelectorAll('.status-chip').forEach(c=>c.setAttribute('aria-pressed', c===chip));
+    });
+  });
+
+  renderEstimateGrid();
+  renderInvoiceGrid();
+  renderPhotoGrid();
+  renderContractorRows();
+  document.getElementById('f-billing').addEventListener('input', updateProfitSummary);
+  document.getElementById('addContractorBtn').addEventListener('click', ()=>{
+    contractorRows.push({name:'', amount:''});
+    renderContractorRows();
+  });
+
+  document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeModal(); });
+  document.getElementById('closeBtn').onclick = closeModal;
+  document.getElementById('cancelBtn').onclick = closeModal;
+  document.addEventListener('keydown', escHandler);
+
+  document.getElementById('saveBtn').onclick = async ()=>{
+    const data = {
+      property: document.getElementById('f-property').value.trim(),
+      unit: document.getElementById('f-unit').value.trim(),
+      description: document.getElementById('f-description').value.trim(),
+      contractors: contractorRows
+        .filter(c=>c.name.trim()!=='' || c.amount!=='')
+        .map(c=>({name:c.name.trim(), amount:Number(c.amount||0)})),
+      billingAmount: Number(document.getElementById('f-billing').value || 0),
+      orderDate: document.getElementById('f-orderDate').value,
+      dueDate: document.getElementById('f-dueDate').value,
+      assignee: document.getElementById('f-assignee').value.trim(),
+      notes: document.getElementById('f-notes').value.trim(),
+      status: currentStatus,
+      photos: pendingPhotos,
+      estimateDocs: pendingEstimateDocs,
+      invoiceDocs: pendingInvoiceDocs,
+      updatedAt: new Date().toISOString(),
+    };
+    if (!data.property){ document.getElementById('f-property').focus(); return; }
+    if (isNew){
+      data.createdAt = data.updatedAt;
+      data.isSample = false;
+      await store.add(data);
+    } else {
+      await store.update(editingId, data);
+    }
+    closeModal();
+  };
+
+  if (!isNew){
+    const delBtn = document.getElementById('deleteBtn');
+    if (delBtn){
+      let armed = false;
+      let armTimer = null;
+      delBtn.addEventListener('click', async ()=>{
+        if (!armed){
+          armed = true;
+          delBtn.textContent = '本当に削除しますか？(もう一度クリック)';
+          armTimer = setTimeout(()=>{
+            armed = false;
+            if (delBtn.isConnected) delBtn.textContent = 'この工事を削除';
+          }, 4000);
+          return;
+        }
+        clearTimeout(armTimer);
+        delBtn.disabled = true;
+        await store.remove(editingId);
+        closeModal();
+      });
+    }
+  }
+}
+
+function escHandler(e){
+  if (e.key === 'Escape' && editingId !== null){
+    closeModal();
+    document.removeEventListener('keydown', escHandler);
+  }
+}
+
+function renderContractorRows(){
+  const wrap = document.getElementById('contractorRows');
+  if (!wrap) return;
+  wrap.innerHTML = contractorRows.map((c,i)=>`
+    <div class="contractor-row">
+      <input type="text" class="c-name" data-idx="${i}" placeholder="業者名" value="${esc(c.name)}">
+      <input type="number" class="c-amount" data-idx="${i}" min="0" step="1" placeholder="金額" value="${c.amount===''||c.amount==null?'':c.amount}">
+      <button type="button" class="c-remove" data-idx="${i}" aria-label="この業者を削除">✕</button>
+    </div>`).join('');
+  wrap.querySelectorAll('.c-name').forEach(inp=>inp.addEventListener('input', e=>{
+    contractorRows[+e.target.dataset.idx].name = e.target.value;
+  }));
+  wrap.querySelectorAll('.c-amount').forEach(inp=>inp.addEventListener('input', e=>{
+    contractorRows[+e.target.dataset.idx].amount = e.target.value;
+    updateProfitSummary();
+  }));
+  wrap.querySelectorAll('.c-remove').forEach(btn=>btn.addEventListener('click', e=>{
+    contractorRows.splice(+e.target.dataset.idx, 1);
+    renderContractorRows();
+  }));
+  updateProfitSummary();
+}
+
+function updateProfitSummary(){
+  const costEl = document.getElementById('costSum');
+  const profitEl = document.getElementById('profitSum');
+  if (!costEl || !profitEl) return;
+  const cost = contractorRows.reduce((s,c)=>s+Number(c.amount||0),0);
+  const billing = Number((document.getElementById('f-billing')||{}).value || 0);
+  const profit = billing - cost;
+  costEl.textContent = fmtYen(cost);
+  profitEl.textContent = fmtYen(profit);
+  profitEl.className = profit<0 ? 'neg' : profit>0 ? 'pos' : '';
+}
+
+function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg){
+  const grid = document.getElementById(gridId);
+  const hint = document.getElementById(hintId);
+  if (!grid) return;
+  const canUpload = !!assetsApi;
+  const list = getList();
+  grid.innerHTML = list.map(raw=>{
+    const item = typeof raw === 'string' ? {id:raw, type:'image'} : raw;
+    const isPdf = (item.type||'').includes('pdf');
+    const src = item.url || ('/_blob/' + item.id); // item.url: Drive link; fallback covers legacy assets
+    return `<div class="photo-thumb">
+      ${isPdf
+        ? `<a href="${src}" target="_blank" rel="noopener" class="pdf-thumb">📄<span>PDF</span></a>`
+        : `<img src="${src}" alt="添付ファイル">`}
+      ${canUpload ? `<button data-id="${item.id}" aria-label="${deleteLabel}">✕</button>` : ''}
+    </div>`;
+  }).join('') + (canUpload ? `<button type="button" class="photo-add" aria-label="${addLabel}">＋</button>` : '');
+  if (hint) hint.textContent = canUpload ? 'クリック、またはドラッグ＆ドロップで追加できます。' : 'ファイルの追加・削除はこの環境では利用できません（閲覧のみ）。';
+
+  grid.querySelectorAll('.photo-thumb button').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      setList(getList().filter(raw=>(typeof raw==='string'?raw:raw.id)!==id));
+      renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg);
+      try{ await assetsApi.delete(id); }catch(e){}
+    });
+  });
+
+  async function uploadFiles(files){
+    for (const file of files){
+      try{
+        const res = await assetsApi.upload(file);
+        setList([...getList(), {id:res.id, type:res.contentType, url:res.url}]);
+        renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg);
+      }catch(e){
+        const h = document.getElementById(hintId);
+        if (h) h.textContent = uploadFailMsg + '：' + (e && e.message ? e.message : e);
+      }
+    }
+  }
+
+  const addBtn = grid.querySelector('.photo-add');
+  if (addBtn){
+    addBtn.addEventListener('click', ()=>{
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = accept; input.multiple = true;
+      input.onchange = () => uploadFiles(input.files);
+      input.click();
+    });
+  }
+
+  if (canUpload && !grid.dataset.dndBound){
+    grid.dataset.dndBound = '1';
+    let dragDepth = 0;
+    grid.addEventListener('dragenter', e=>{
+      e.preventDefault();
+      dragDepth++;
+      grid.classList.add('drag-over');
+    });
+    grid.addEventListener('dragover', e=>{ e.preventDefault(); });
+    grid.addEventListener('dragleave', ()=>{
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) grid.classList.remove('drag-over');
+    });
+    grid.addEventListener('drop', e=>{
+      e.preventDefault();
+      dragDepth = 0;
+      grid.classList.remove('drag-over');
+      const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+      if (files.length) uploadFiles(files);
+    });
+  }
+}
+
+function renderPhotoGrid(){
+  renderAttachGrid('photoGrid', 'photoHint', ()=>pendingPhotos, v=>{pendingPhotos=v;}, 'image/*', '写真を削除', '写真を追加', '写真のアップロードに失敗しました');
+}
+function renderEstimateGrid(){
+  renderAttachGrid('estimateGrid', 'estimateHint', ()=>pendingEstimateDocs, v=>{pendingEstimateDocs=v;}, 'application/pdf,image/*', 'ファイルを削除', '見積書を追加', '見積書のアップロードに失敗しました');
+}
+function renderInvoiceGrid(){
+  renderAttachGrid('invoiceGrid', 'invoiceHint', ()=>pendingInvoiceDocs, v=>{pendingInvoiceDocs=v;}, 'application/pdf,image/*', 'ファイルを削除', '請求書を追加', '請求書のアップロードに失敗しました');
+}
+
+/* ---------- sample data ---------- */
+async function clearSamples(){
+  const samples = jobs.filter(j=>j.isSample);
+  for (const j of samples) await store.remove(j.id);
+}
+
+/* ---------- archive view ---------- */
+let archiveQuery = '';
+function closedJobsFiltered(){
+  const q = archiveQuery.trim().toLowerCase();
+  return closedJobs().filter(j=>{
+    if (!q) return true;
+    const names = (j.contractors||[]).map(c=>c.name).join(' ');
+    return [j.property, j.unit, j.description, names, j.notes].join(' ').toLowerCase().includes(q);
+  });
+}
+
+function renderArchive(){
+  const closed = closedJobsFiltered();
+  const section = document.getElementById('archiveSection');
+  const totalCost = closed.reduce((s,j)=>s+jobCost(j),0);
+  const totalBilling = closed.reduce((s,j)=>s+Number(j.billingAmount||0),0);
+  const totalProfit = totalBilling - totalCost;
+  section.innerHTML = `
+    <div class="archive-head">
+      <div>
+        <h2>終了案件</h2>
+        <p>「計上済みにする」を押した工事は、ここに記録されます（全${closedJobs().length}件）</p>
+      </div>
+      <input type="search" class="archive-search" id="archiveSearch" placeholder="物件名・工事内容・業者で検索" value="${esc(archiveQuery)}">
+    </div>
+    <div class="stats" style="margin-bottom:18px;">
+      <div class="stat-tile"><div class="n">${closed.length}</div><div class="l">件数</div></div>
+      <div class="stat-tile"><div class="n">${fmtYen(totalCost)}</div><div class="l">発注金額合計</div></div>
+      <div class="stat-tile"><div class="n">${fmtYen(totalBilling)}</div><div class="l">請求金額合計</div></div>
+      <div class="stat-tile total"><div class="n" style="color:${totalProfit<0?'var(--danger)':'var(--accent)'}">${fmtYen(totalProfit)}</div><div class="l">利益合計</div></div>
+    </div>
+    ${closed.length ? `
+    <div class="archive-table-wrap">
+      <table class="archive-table">
+        <thead><tr>
+          <th>物件</th><th>工事内容</th><th>業者</th><th>発注金額</th><th>請求金額</th><th>利益</th><th>担当</th><th>計上日</th>
+        </tr></thead>
+        <tbody>
+          ${closed.slice().sort((a,b)=>(b.closedAt||'').localeCompare(a.closedAt||'')).map(j=>{
+            const names = (j.contractors||[]).map(c=>c.name).filter(Boolean).join('、') || '—';
+            const profit = jobProfit(j);
+            return `<tr data-id="${esc(j.id)}">
+              <td>${esc(fmtProperty(j))}</td>
+              <td class="desc-cell">${esc(j.description||'')}</td>
+              <td>${esc(names)}</td>
+              <td class="num">${fmtYen(jobCost(j))}</td>
+              <td class="num">${fmtYen(j.billingAmount)}</td>
+              <td class="num profit ${profit<0?'neg':'pos'}">${fmtYen(profit)}</td>
+              <td>${esc(j.assignee||'')}</td>
+              <td>${j.closedAt ? j.closedAt.slice(0,10) : ''}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>` : `<div class="archive-empty">まだ終了案件はありません。工事ボードで「計上済みにする」を押すと、ここに記録されます。</div>`}
+  `;
+  section.querySelectorAll('tbody tr').forEach(tr=>{
+    tr.addEventListener('click', ()=>openEditModal(tr.dataset.id));
+  });
+  const search = document.getElementById('archiveSearch');
+  if (search) search.addEventListener('input', e=>{ archiveQuery = e.target.value; renderArchive(); });
+}
+
+/* ---------- boot ---------- */
+function showView(view){
+  currentView = view;
+  document.getElementById('tabBoard').setAttribute('aria-selected', String(view==='board'));
+  document.getElementById('tabArchive').setAttribute('aria-selected', String(view==='archive'));
+  document.getElementById('boardSection').hidden = view !== 'board';
+  document.getElementById('archiveSection').hidden = view !== 'archive';
+  renderAll();
+}
+
+function renderAll(){
+  const closedCount = closedJobs().length;
+  document.getElementById('archiveCount').textContent = closedCount ? ` (${closedCount})` : '';
+  if (currentView === 'board'){
+    renderStats(activeJobs());
+    populateFilterOptions(activeJobs());
+    renderBoard();
+    document.getElementById('sampleNote').hidden = !activeJobs().some(j=>j.isSample);
+  } else {
+    renderArchive();
+  }
+}
+
+async function boot(){
+  document.getElementById('newJobBtn').addEventListener('click', openNewModal);
+  document.getElementById('searchInput').addEventListener('input', renderBoard);
+  document.getElementById('propertyFilter').addEventListener('change', renderBoard);
+  document.getElementById('contractorFilter').addEventListener('change', renderBoard);
+  document.getElementById('clearSampleBtn').addEventListener('click', clearSamples);
+  document.getElementById('tabBoard').addEventListener('click', ()=>showView('board'));
+  document.getElementById('tabArchive').addEventListener('click', ()=>showView('archive'));
+  showView('board');
+
+  if (API_URL){
+    store = makeGasStore(API_URL);
+    assetsApi = makeGasAssets(API_URL);
+  } else {
+    store = makeLocalStore();
+    assetsApi = null;
+    const notice = document.createElement('div');
+    notice.className = 'sample-note';
+    notice.style.background = 'var(--danger-soft)';
+    notice.style.color = 'var(--danger)';
+    notice.textContent = 'バックエンド未設定です（このブラウザだけのローカル保存になっています）。Code.gsをデプロイし、そのURLをAPI_URLに設定してください。';
+    document.getElementById('boardSection').prepend(notice);
+  }
+
+  store.subscribe(list=>{
+    jobs = list;
+    renderAll();
+    if (editingId && editingId !== 'new'){
+      const job = jobs.find(j=>j.id===editingId);
+      if (job) pendingPhotos = [...(job.photos||[])];
+    }
+  });
+}
+boot();
+</script>
