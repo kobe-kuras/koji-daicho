@@ -1191,9 +1191,17 @@ async function enableNotifications(silent){
   }
 }
 
+function clearAppBadge(){
+  if ('clearAppBadge' in navigator){
+    try{ navigator.clearAppBadge().catch(()=>{}); }catch(e){}
+  }
+}
+
 async function boot(){
   document.getElementById('newJobBtn').addEventListener('click', openNewModal);
   document.getElementById('notifBtn').addEventListener('click', ()=>enableNotifications(false));
+  clearAppBadge();
+  window.addEventListener('focus', clearAppBadge);
   if (localStorage.getItem(NOTIF_ENABLED_KEY) === '1' && typeof Notification !== 'undefined' && Notification.permission === 'granted'){
     updateNotifBtn('on');
     enableNotifications(true);
