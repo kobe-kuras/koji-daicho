@@ -404,13 +404,32 @@ function makeGasStore(apiUrl){
     });
     return res.json();
   }
+  function notify(){ listeners.forEach(fn=>fn(cache)); }
   fetchList();
   setInterval(fetchList, 8000);
   return {
     subscribe(fn){ listeners.add(fn); fn(cache); return ()=>listeners.delete(fn); },
-    async add(data){ const r = await post({action:'create', data}); await fetchList(); return r.id; },
-    async update(id, data){ await post({action:'update', id, data}); await fetchList(); },
-    async remove(id){ await post({action:'delete', id}); await fetchList(); },
+    // Each write updates the local cache immediately (instant UI feedback) instead of
+    // waiting on a second round trip to re-fetch the whole list — Apps Script calls are
+    // slow, so that second trip was the main source of lag. The background poll above
+    // still reconciles with the server (and other viewers' changes) every 8s.
+    async add(data){
+      const r = await post({action:'create', data});
+      const now = new Date().toISOString();
+      cache = [...cache, Object.assign({}, data, {id:r.id, createdAt:now, updatedAt:now})];
+      notify();
+      return r.id;
+    },
+    async update(id, data){
+      await post({action:'update', id, data});
+      cache = cache.map(j => j.id===id ? Object.assign({}, j, data, {updatedAt:new Date().toISOString()}) : j);
+      notify();
+    },
+    async remove(id){
+      await post({action:'delete', id});
+      cache = cache.filter(j => j.id!==id);
+      notify();
+    },
   };
 }
 
