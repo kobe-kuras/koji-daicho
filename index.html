@@ -458,6 +458,41 @@ function fileToBase64(file){
   });
 }
 
+const MAX_IMAGE_DIMENSION = 1600; // px, long edge — plenty for on-screen viewing and print
+const IMAGE_JPEG_QUALITY = 0.8;
+
+// Resizes/re-encodes a photo as JPEG before upload — phone camera photos run several MB,
+// and most of that is far more resolution than this tool ever displays. Smaller files upload
+// faster (Apps Script's own per-call overhead stays the same either way, but the encode+
+// transfer time scales with size). Leaves PDFs and already-small images alone; falls back
+// to the original file if anything about the resize fails (e.g. an unsupported image type).
+function compressImage(file){
+  if (!file.type || !file.type.startsWith('image/') || file.type === 'image/svg+xml'){
+    return Promise.resolve(file);
+  }
+  return new Promise(resolve=>{
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = ()=>{
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(img.width, img.height));
+      if (scale >= 1 && file.size < 1.5*1024*1024){ resolve(file); return; } // already small enough
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob=>{
+        if (!blob || blob.size >= file.size){ resolve(file); return; } // compression didn't help
+        const name = file.name.replace(/\.\w+$/, '') + '.jpg';
+        resolve(new File([blob], name, {type:'image/jpeg'}));
+      }, 'image/jpeg', IMAGE_JPEG_QUALITY);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(objectUrl); resolve(file); };
+    img.src = objectUrl;
+  });
+}
+
 function makeGasAssets(apiUrl){
   async function post(body){
     const res = await fetch(apiUrl, {
@@ -469,8 +504,9 @@ function makeGasAssets(apiUrl){
   }
   return {
     async upload(file){
-      const base64 = await fileToBase64(file);
-      const r = await post({ action:'uploadFile', filename:file.name, mimeType:file.type||'application/octet-stream', base64 });
+      const toSend = await compressImage(file);
+      const base64 = await fileToBase64(toSend);
+      const r = await post({ action:'uploadFile', filename:toSend.name, mimeType:toSend.type||'application/octet-stream', base64 });
       if (r.error) throw new Error(r.error);
       return { id:r.id, url:r.url, contentType:r.contentType };
     },
