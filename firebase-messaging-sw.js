@@ -16,4 +16,22 @@ messaging.onBackgroundMessage((payload) => {
   const title = (payload.notification && payload.notification.title) || '工事台帳';
   const body = (payload.notification && payload.notification.body) || '';
   self.registration.showNotification(title, { body: body });
+  if ('setAppBadge' in navigator) {
+    navigator.setAppBadge().catch(()=>{});
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  if ('clearAppBadge' in navigator) {
+    navigator.clearAppBadge().catch(()=>{});
+  }
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.indexOf('koji-daicho') !== -1 && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow('https://kobe-kuras.github.io/koji-daicho/');
+    })
+  );
 });
