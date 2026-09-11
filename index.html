@@ -270,6 +270,11 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
 .photo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; border-radius:8px; transition:background .12s ease;}
 .photo-grid.drag-over{outline:2px dashed var(--accent); outline-offset:2px; background:var(--accent-soft);}
 .photo-thumb{position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; border:1px solid var(--line); background:var(--surface-2);}
+.photo-thumb.uploading{opacity:.55;}
+.photo-thumb.uploading::after{
+  content:"アップロード中…"; position:absolute; inset:auto 0 0 0; padding:3px 4px; text-align:center;
+  font-size:.62rem; font-weight:700; color:#fff; background:rgba(20,22,26,0.62);
+}
 .photo-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
 .pdf-thumb{
   width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -571,13 +576,13 @@ function renderBoard(){
   });
   wrap.querySelectorAll('.due-input').forEach(inp=>{
     inp.addEventListener('click', e=>e.stopPropagation());
-    inp.addEventListener('change', async e=>{
+    inp.addEventListener('change', e=>{
       e.stopPropagation();
-      await store.update(inp.dataset.id, { dueDate: e.target.value, updatedAt: new Date().toISOString() });
+      store.update(inp.dataset.id, { dueDate: e.target.value, updatedAt: new Date().toISOString() });
     });
   });
   wrap.querySelectorAll('.advance:not(.closeout)').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
+    btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       const id = btn.dataset.id;
       const job = jobs.find(j=>j.id===id);
@@ -586,14 +591,14 @@ function renderBoard(){
       if (!next) return;
       const update = { status: next.key, updatedAt: new Date().toISOString() };
       if (next.key === 'ordered' && !job.orderDate) update.orderDate = new Date().toISOString().slice(0,10);
-      await store.update(id, update);
+      store.update(id, update);
     });
   });
   wrap.querySelectorAll('.advance.closeout').forEach(btn=>{
-    btn.addEventListener('click', async (e)=>{
+    btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       const id = btn.dataset.id;
-      await store.update(id, { status: 'closed', closedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      store.update(id, { status: 'closed', closedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
       showView('archive');
     });
   });
@@ -768,9 +773,11 @@ function renderModal(job, isNew){
     });
   });
 
-  renderEstimateGrid();
-  renderInvoiceGrid();
-  renderPhotoGrid();
+  const savedJobId = isNew ? null : editingId; // captured now: stays correct even after this modal closes
+  const persistField = field => savedJobId ? (list => store.update(savedJobId, {[field]: list})) : null;
+  renderEstimateGrid(persistField('estimateDocs'));
+  renderInvoiceGrid(persistField('invoiceDocs'));
+  renderPhotoGrid(persistField('photos'));
   renderContractorRows();
   document.getElementById('f-billing').addEventListener('input', updateProfitSummary);
   document.getElementById('addContractorBtn').addEventListener('click', ()=>{
@@ -797,18 +804,21 @@ function renderModal(job, isNew){
       assignee: document.getElementById('f-assignee').value.trim(),
       notes: document.getElementById('f-notes').value.trim(),
       status: currentStatus,
-      photos: pendingPhotos,
-      estimateDocs: pendingEstimateDocs,
-      invoiceDocs: pendingInvoiceDocs,
+      // drop any still-uploading placeholders (local blob: previews aren't valid once saved —
+      // for an existing job they attach on their own via persistField() once the upload finishes)
+      photos: pendingPhotos.filter(p => !(p && p.uploading)),
+      estimateDocs: pendingEstimateDocs.filter(p => !(p && p.uploading)),
+      invoiceDocs: pendingInvoiceDocs.filter(p => !(p && p.uploading)),
       updatedAt: new Date().toISOString(),
     };
     if (!data.property){ document.getElementById('f-property').focus(); return; }
+    // Don't wait on the network — close immediately, save in the background.
     if (isNew){
       data.createdAt = data.updatedAt;
       data.isSample = false;
-      await store.add(data);
+      store.add(data);
     } else {
-      await store.update(editingId, data);
+      store.update(editingId, data);
     }
     closeModal();
   };
@@ -829,8 +839,7 @@ function renderModal(job, isNew){
           return;
         }
         clearTimeout(armTimer);
-        delBtn.disabled = true;
-        await store.remove(editingId);
+        store.remove(editingId);
         closeModal();
       });
     }
@@ -879,7 +888,11 @@ function updateProfitSummary(){
   profitEl.className = profit<0 ? 'neg' : profit>0 ? 'pos' : '';
 }
 
-function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg){
+function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg, persist){
+  // persist(list): optional — when editing an existing job, saves an upload/delete straight
+  // to that job's record as soon as it happens, so it isn't lost if the modal is closed
+  // before waiting for the (slow, ~1.5-2s) upload to finish. Not used for a brand-new job,
+  // since it has no id yet — there, Save must wait for uploads still in flight.
   const grid = document.getElementById(gridId);
   const hint = document.getElementById(hintId);
   if (!grid) return;
@@ -888,8 +901,8 @@ function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel,
   grid.innerHTML = list.map(raw=>{
     const item = typeof raw === 'string' ? {id:raw, type:'image'} : raw;
     const isPdf = (item.type||'').includes('pdf');
-    const src = item.url || ('/_blob/' + item.id); // item.url: Drive link; fallback covers legacy assets
-    return `<div class="photo-thumb">
+    const src = item.url || ('/_blob/' + item.id); // item.url: Drive link, or a local preview while uploading
+    return `<div class="photo-thumb${item.uploading?' uploading':''}">
       ${isPdf
         ? `<a href="${src}" target="_blank" rel="noopener" class="pdf-thumb">📄<span>PDF</span></a>`
         : `<img src="${src}" alt="添付ファイル">`}
@@ -899,24 +912,37 @@ function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel,
   if (hint) hint.textContent = canUpload ? 'クリック、またはドラッグ＆ドロップで追加できます。' : 'ファイルの追加・削除はこの環境では利用できません（閲覧のみ）。';
 
   grid.querySelectorAll('.photo-thumb button').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
+    btn.addEventListener('click', ()=>{
       const id = btn.dataset.id;
-      setList(getList().filter(raw=>(typeof raw==='string'?raw:raw.id)!==id));
-      renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg);
-      try{ await assetsApi.delete(id); }catch(e){}
+      const newList = getList().filter(raw=>(typeof raw==='string'?raw:raw.id)!==id);
+      setList(newList);
+      renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg, persist);
+      if (persist) persist(newList);
+      assetsApi.delete(id).catch(()=>{});
     });
   });
 
-  async function uploadFiles(files){
+  function uploadFiles(files){
     for (const file of files){
-      try{
-        const res = await assetsApi.upload(file);
-        setList([...getList(), {id:res.id, type:res.contentType, url:res.url}]);
-        renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg);
-      }catch(e){
+      const tempId = 'up-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
+      const previewUrl = URL.createObjectURL(file);
+      setList([...getList(), {id:tempId, type:file.type, url:previewUrl, uploading:true}]);
+      renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg, persist);
+      assetsApi.upload(file).then(res=>{
+        const stillThere = getList().some(raw=>(typeof raw==='string'?raw:raw.id)===tempId);
+        URL.revokeObjectURL(previewUrl);
+        if (!stillThere) return; // removed while it was still uploading
+        const newList = getList().map(raw=>(typeof raw==='string'?raw:raw.id)===tempId ? {id:res.id, type:res.contentType, url:res.url} : raw);
+        setList(newList);
+        renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg, persist);
+        if (persist) persist(newList);
+      }).catch(e=>{
+        URL.revokeObjectURL(previewUrl);
+        setList(getList().filter(raw=>(typeof raw==='string'?raw:raw.id)!==tempId));
+        renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg, persist);
         const h = document.getElementById(hintId);
         if (h) h.textContent = uploadFailMsg + '：' + (e && e.message ? e.message : e);
-      }
+      });
     }
   }
 
@@ -953,14 +979,14 @@ function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel,
   }
 }
 
-function renderPhotoGrid(){
-  renderAttachGrid('photoGrid', 'photoHint', ()=>pendingPhotos, v=>{pendingPhotos=v;}, 'image/*', '写真を削除', '写真を追加', '写真のアップロードに失敗しました');
+function renderPhotoGrid(persist){
+  renderAttachGrid('photoGrid', 'photoHint', ()=>pendingPhotos, v=>{pendingPhotos=v;}, 'image/*', '写真を削除', '写真を追加', '写真のアップロードに失敗しました', persist);
 }
-function renderEstimateGrid(){
-  renderAttachGrid('estimateGrid', 'estimateHint', ()=>pendingEstimateDocs, v=>{pendingEstimateDocs=v;}, 'application/pdf,image/*', 'ファイルを削除', '見積書を追加', '見積書のアップロードに失敗しました');
+function renderEstimateGrid(persist){
+  renderAttachGrid('estimateGrid', 'estimateHint', ()=>pendingEstimateDocs, v=>{pendingEstimateDocs=v;}, 'application/pdf,image/*', 'ファイルを削除', '見積書を追加', '見積書のアップロードに失敗しました', persist);
 }
-function renderInvoiceGrid(){
-  renderAttachGrid('invoiceGrid', 'invoiceHint', ()=>pendingInvoiceDocs, v=>{pendingInvoiceDocs=v;}, 'application/pdf,image/*', 'ファイルを削除', '請求書を追加', '請求書のアップロードに失敗しました');
+function renderInvoiceGrid(persist){
+  renderAttachGrid('invoiceGrid', 'invoiceHint', ()=>pendingInvoiceDocs, v=>{pendingInvoiceDocs=v;}, 'application/pdf,image/*', 'ファイルを削除', '請求書を追加', '請求書のアップロードに失敗しました', persist);
 }
 
 /* ---------- sample data ---------- */
