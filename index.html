@@ -318,6 +318,7 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
     </div>
     <div class="topbar-actions">
       <button class="btn btn-ghost" id="notifBtn">🔔 通知を有効にする</button>
+      <button class="btn btn-ghost" id="badgeTestBtn">🔴 バッジテスト</button>
       <button class="btn btn-primary" id="newJobBtn">＋ 新規登録</button>
     </div>
   </div>
@@ -1200,6 +1201,18 @@ function clearAppBadge(){
 async function boot(){
   document.getElementById('newJobBtn').addEventListener('click', openNewModal);
   document.getElementById('notifBtn').addEventListener('click', ()=>enableNotifications(false));
+  document.getElementById('badgeTestBtn').addEventListener('click', ()=>{
+    if (!('setAppBadge' in navigator)){
+      alert('このブラウザ(フォアグラウンド)ではバッジAPIが使えません: navigator.setAppBadge が存在しません');
+      return;
+    }
+    navigator.setAppBadge().then(()=>{
+      alert('setAppBadge を呼び出しました。アイコンにマークが付いたか確認してください。5秒後に自動で消えます。');
+      setTimeout(()=>navigator.clearAppBadge().catch(()=>{}), 5000);
+    }).catch(err=>{
+      alert('setAppBadge に失敗しました: ' + err);
+    });
+  });
   clearAppBadge();
   window.addEventListener('focus', clearAppBadge);
   if (localStorage.getItem(NOTIF_ENABLED_KEY) === '1' && typeof Notification !== 'undefined' && Notification.permission === 'granted'){
