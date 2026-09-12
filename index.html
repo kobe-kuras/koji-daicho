@@ -253,6 +253,7 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
 .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--accent); outline-offset:1px; border-color:transparent;}
 .field textarea{resize:vertical; min-height:64px; font-family:var(--font-display);}
 .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;}
 .row-property{display:grid; grid-template-columns:2fr 1fr; gap:12px;}
 .contractor-rows{display:flex; flex-direction:column; gap:8px;}
 .contractor-row{display:grid; grid-template-columns:1fr 130px 32px; gap:8px; align-items:center;}
@@ -348,6 +349,7 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
   .board{grid-template-columns:1fr; }
   .stats{grid-template-columns:repeat(2,1fr);}
   .row2{grid-template-columns:1fr;}
+  .row3{grid-template-columns:1fr;}
   .row-property{grid-template-columns:1fr;}
   .contractor-row{grid-template-columns:1fr 100px 32px;}
   table.archive-table{white-space:normal;}
@@ -432,6 +434,7 @@ let editingId = null; // null = new job modal closed; 'new' = creating; else job
 let pendingPhotos = []; // asset ids attached while modal open (mirrors doc)
 let pendingEstimateDocs = []; // {id,type} attached while modal open (mirrors doc.estimateDocs)
 let pendingInvoiceDocs = []; // {id,type} attached while modal open (mirrors doc.invoiceDocs)
+let pendingContractorEstimateDocs = []; // {id,type} attached while modal open (mirrors doc.contractorEstimateDocs)
 let contractorRows = []; // [{name, amount}] attached while modal open (mirrors doc.contractors)
 
 const fmtYen = n => '¥' + Number(n||0).toLocaleString('ja-JP');
@@ -767,6 +770,7 @@ function openNewModal(){
   pendingPhotos = [];
   pendingEstimateDocs = [];
   pendingInvoiceDocs = [];
+  pendingContractorEstimateDocs = [];
   contractorRows = [{name:'', amount:''}];
   renderModal({
     property:'', description:'', billingAmount:'', orderDate:'', dueDate:'',
@@ -780,6 +784,7 @@ function openEditModal(id){
   pendingPhotos = [...(job.photos||[])];
   pendingEstimateDocs = [...(job.estimateDocs||[])];
   pendingInvoiceDocs = [...(job.invoiceDocs||[])];
+  pendingContractorEstimateDocs = [...(job.contractorEstimateDocs||[])];
   contractorRows = (job.contractors && job.contractors.length) ? job.contractors.map(c=>({...c})) : [{name:'', amount:''}];
   renderModal(job, false);
 }
@@ -851,7 +856,12 @@ function renderModal(job, isNew){
             ${STATUSES.map(s=>`<button type="button" class="status-chip" data-key="${s.key}" style="--chip-color:${s.color}; --chip-color-soft:${s.soft}" aria-pressed="${s.key===job.status}">${s.label}</button>`).join('')}
           </div>
         </div>
-        <div class="row2">
+        <div class="row3">
+          <div class="field">
+            <label>業者見積書</label>
+            <div class="photo-grid" id="contractorEstimateGrid"></div>
+            <span class="hint" id="contractorEstimateHint"></span>
+          </div>
           <div class="field">
             <label>見積書</label>
             <div class="photo-grid" id="estimateGrid"></div>
@@ -925,6 +935,7 @@ function renderModal(job, isNew){
 
   const savedJobId = isNew ? null : editingId; // captured now: stays correct even after this modal closes
   const persistField = field => savedJobId ? (list => store.update(savedJobId, {[field]: list})) : null;
+  renderContractorEstimateGrid(persistField('contractorEstimateDocs'));
   renderEstimateGrid(persistField('estimateDocs'));
   renderInvoiceGrid(persistField('invoiceDocs'));
   renderPhotoGrid(persistField('photos'));
@@ -960,6 +971,7 @@ function renderModal(job, isNew){
       photos: pendingPhotos.filter(p => !(p && p.uploading)),
       estimateDocs: pendingEstimateDocs.filter(p => !(p && p.uploading)),
       invoiceDocs: pendingInvoiceDocs.filter(p => !(p && p.uploading)),
+      contractorEstimateDocs: pendingContractorEstimateDocs.filter(p => !(p && p.uploading)),
       updatedAt: new Date().toISOString(),
     };
     if (!data.property){ document.getElementById('f-property').focus(); return; }
@@ -1207,6 +1219,9 @@ function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel,
 
 function renderPhotoGrid(persist){
   renderAttachGrid('photoGrid', 'photoHint', ()=>pendingPhotos, v=>{pendingPhotos=v;}, 'image/*', '写真を削除', '写真を追加', '写真のアップロードに失敗しました', persist);
+}
+function renderContractorEstimateGrid(persist){
+  renderAttachGrid('contractorEstimateGrid', 'contractorEstimateHint', ()=>pendingContractorEstimateDocs, v=>{pendingContractorEstimateDocs=v;}, 'application/pdf,image/*', 'ファイルを削除', '業者見積書を追加', '業者見積書のアップロードに失敗しました', persist);
 }
 function renderEstimateGrid(persist){
   renderAttachGrid('estimateGrid', 'estimateHint', ()=>pendingEstimateDocs, v=>{pendingEstimateDocs=v;}, 'application/pdf,image/*', 'ファイルを削除', '見積書を追加', '見積書のアップロードに失敗しました', persist);
