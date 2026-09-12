@@ -320,6 +320,59 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
 @media (max-width:640px){
   .lightbox-prev, .lightbox-next{width:40px; height:40px; font-size:1.3rem;}
 }
+.estimate-overlay{
+  display:none; position:fixed; inset:0; background:rgba(20,22,26,0.72); z-index:9997;
+  overflow:auto; padding:24px;
+}
+.estimate-overlay.open{display:flex; justify-content:center; align-items:flex-start;}
+.estimate-page{
+  background:#fff; color:#222; width:800px; max-width:100%; padding:36px 44px 44px;
+  font-family:'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif; box-shadow:0 12px 40px rgba(0,0,0,0.35);
+  border-radius:4px; position:relative;
+}
+.estimate-toolbar{
+  display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap;
+}
+.estimate-toolbar input{
+  border:1px solid #ccc; border-radius:6px; padding:6px 10px; font-size:.85rem; font-family:inherit;
+}
+.estimate-topright{text-align:right; font-size:.8rem; color:#222;}
+.estimate-topright .estimate-no{font-size:.75rem; color:#444; margin-top:4px;}
+.estimate-customer-row{margin-top:18px; font-size:1.25rem; font-weight:700;}
+.estimate-customer-row .estimate-customer-name{
+  border-bottom:2px solid #222; display:inline-block; min-width:110px; padding:0 6px 4px; margin-right:8px;
+}
+.estimate-greeting{font-size:.85rem; margin-top:16px; padding-bottom:12px; border-bottom:1px solid #999;}
+.estimate-title{
+  margin:16px -44px 0; background:#4472C4; color:#fff; text-align:center; font-size:1.7rem; font-weight:700;
+  letter-spacing:.5em; padding:16px 0 16px 0.5em;
+}
+.estimate-amount-block{margin-top:20px;}
+.estimate-amount-main{
+  display:flex; align-items:center; gap:16px; border-bottom:1.5px solid #222; padding-bottom:10px;
+}
+.estimate-amount-bar{width:8px; align-self:stretch; background:#4472C4; flex:none;}
+.estimate-amount-label{font-weight:700; font-size:1rem; flex:none;}
+.estimate-amount-value{font-weight:700; font-size:1.8rem; flex:none;}
+.estimate-amount-unit{font-size:.9rem; flex:none;}
+.estimate-amount-sub{margin:8px 0 0 auto; width:280px;}
+.estimate-amount-sub div{display:flex; justify-content:space-between; font-size:.8rem; color:#333; padding:4px 0; border-bottom:1px solid #999;}
+.estimate-lower{display:flex; gap:28px; margin-top:26px; align-items:flex-start;}
+table.estimate-info{flex:1 1 420px; border-collapse:collapse; font-size:.85rem;}
+table.estimate-info th{
+  width:110px; border:1px solid #222; background:#f3f3f3; font-weight:700; padding:8px; text-align:center;
+}
+table.estimate-info td{border:1px solid #222; padding:8px 10px;}
+.estimate-company{flex:1 1 220px; font-size:.72rem; color:#444; line-height:1.7;}
+.estimate-company img{width:170px; height:auto; margin-bottom:8px; display:block;}
+.estimate-company .estimate-company-name{font-size:.8rem; font-weight:700; color:#222; margin-bottom:4px;}
+@media print{
+  @page{size:A4 landscape; margin:12mm;}
+  body > *:not(.estimate-overlay){display:none !important;}
+  .estimate-overlay{position:absolute; background:none; padding:0; display:block;}
+  .estimate-page{box-shadow:none; width:100%; max-width:none; padding:0;}
+  .no-print{display:none !important;}
+}
 .photo-add{
   aspect-ratio:1; border-radius:8px; border:1.5px dashed var(--line-strong); background:transparent;
   color:var(--ink-muted); font-size:1.4rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
@@ -1013,24 +1066,98 @@ function renderModal(job, isNew){
     const estimateBtn = document.getElementById('estimateBtn');
     if (estimateBtn){
       estimateBtn.addEventListener('click', async ()=>{
+        const current = jobs.find(x=>x.id===editingId);
+        if (!current) return;
+        const originalText = estimateBtn.textContent;
         estimateBtn.disabled = true;
-        estimateBtn.textContent = '準備中…';
+        estimateBtn.textContent = '開いています…';
         try{
           const res = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action:'selectEstimateJob', id: editingId }),
-          }).then(r=>r.json());
-          if (res.url) window.open(res.url, '_blank');
-          else alert('見積書の準備に失敗しました。');
-        } catch(e){
-          alert('見積書の準備に失敗しました。');
+            headers: {'Content-Type': 'text/plain;charset=utf-8'},
+            body: JSON.stringify({ action:'getOrCreateEstimateSheet', id: current.id }),
+          });
+          const data = await res.json();
+          if (data && data.url){
+            window.open(data.url, '_blank');
+          } else {
+            alert('見積書の作成に失敗しました：' + (data && data.error ? data.error : '不明なエラー'));
+          }
+        }catch(e){
+          alert('見積書の作成に失敗しました。通信環境をご確認の上、もう一度お試しください。');
+        }finally{
+          estimateBtn.disabled = false;
+          estimateBtn.textContent = originalText;
         }
-        estimateBtn.disabled = false;
-        estimateBtn.textContent = '📄 見積書を作成';
       });
     }
   }
+}
+
+function openEstimateView(job){
+  let overlay = document.getElementById('estimateOverlay');
+  if (!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'estimateOverlay';
+    overlay.className = 'estimate-overlay';
+    document.body.appendChild(overlay);
+  }
+  const billing = Number(job.billingAmount || 0);
+  const subtotal = Math.round(billing / 1.1);
+  const tax = billing - subtotal;
+  const todayStr = new Date().toLocaleDateString('ja-JP', {year:'numeric', month:'long', day:'numeric'});
+  overlay.innerHTML = `
+    <div class="estimate-page">
+      <div class="estimate-toolbar no-print">
+        <label>お客様名<input type="text" id="estimateCustomerInput" placeholder="例：山田" style="margin-left:6px;"></label>
+        <button type="button" class="btn btn-primary" id="estimatePrintBtn">🖨️ 印刷 / PDFで保存</button>
+        <button type="button" class="btn" id="estimateCloseBtn">閉じる</button>
+      </div>
+      <div class="estimate-topright">
+        <div>${esc(todayStr)}</div>
+        <div class="estimate-no">No.</div>
+      </div>
+      <div class="estimate-customer-row"><span class="estimate-customer-name" id="estimateCustomerName">　</span>様</div>
+      <div class="estimate-greeting">この度はご照会いただき誠にありがとうございます。下記の通りお見積り申し上げます。</div>
+      <div class="estimate-title">御見積書</div>
+      <div class="estimate-amount-block">
+        <div class="estimate-amount-main">
+          <div class="estimate-amount-bar"></div>
+          <div class="estimate-amount-label">御見積金額</div>
+          <div class="estimate-amount-value">${billing.toLocaleString('ja-JP')}</div>
+          <div class="estimate-amount-unit">円也</div>
+        </div>
+        <div class="estimate-amount-sub">
+          <div><span>見積代金</span><span>${subtotal.toLocaleString('ja-JP')} -</span></div>
+          <div><span>消費税</span><span>${tax.toLocaleString('ja-JP')} -</span></div>
+        </div>
+      </div>
+      <div class="estimate-lower">
+        <table class="estimate-info">
+          <tr><th>工事名</th><td>${esc(fmtProperty(job))}</td></tr>
+          <tr><th>工事内容</th><td>${esc(job.description || '')}</td></tr>
+          <tr><th>工事場所</th><td>&nbsp;</td></tr>
+          <tr><th>工期予定</th><td>打合せによる</td></tr>
+          <tr><th>見積有効期限</th><td>発行日より1ヵ月</td></tr>
+          <tr><th>備考</th><td>上記の他に追加工事が必要な場合は、別途ご相談させていただきます。</td></tr>
+        </table>
+        <div class="estimate-company">
+          <img src="kuras-logo.jpg" alt="KURAS">
+          <div class="estimate-company-name">株式会社StarLifes　KURAS岡本店・芦屋店</div>
+          <div>〒658-0072　兵庫県神戸市東灘区岡本1丁目4-27　第二オギタビル3F</div>
+          <div>TEL：078-411-2118　FAX：078-411-2117</div>
+          <div>MAIL：info@kobe-kuras.com</div>
+        </div>
+      </div>
+    </div>
+  `;
+  overlay.classList.add('open');
+  document.getElementById('estimatePrintBtn').addEventListener('click', ()=>window.print());
+  document.getElementById('estimateCloseBtn').addEventListener('click', ()=>overlay.classList.remove('open'));
+  document.getElementById('estimateCustomerInput').addEventListener('input', e=>{
+    document.getElementById('estimateCustomerName').textContent = e.target.value || '　';
+  });
+  overlay.addEventListener('click', e=>{ if (e.target===overlay) overlay.classList.remove('open'); });
 }
 
 function escHandler(e){
