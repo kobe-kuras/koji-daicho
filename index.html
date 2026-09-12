@@ -1086,6 +1086,16 @@ function renderModal(job, isNew){
           const data = await res.json();
           if (data && typeof data.url === 'string' && /^https?:\/\//.test(data.url)){
             if (newTab) newTab.location.href = data.url; else window.open(data.url, '_blank');
+            if (Array.isArray(data.estimateDocs)){
+              pendingEstimateDocs = data.estimateDocs;
+              renderEstimateGrid(false);
+              // バックグラウンドの8秒ポーリングを待たずに、他の画面のキャッシュも合わせておく
+              const idx = jobs.findIndex(x=>x.id===current.id);
+              if (idx !== -1) jobs[idx] = Object.assign({}, jobs[idx], { estimateDocs: data.estimateDocs });
+            }
+            if (data.pdfError){
+              alert('スプレッドシートは開けましたが、PDFの添付保存には失敗しました：' + data.pdfError);
+            }
           } else {
             if (newTab) newTab.close();
             alert('見積書の作成に失敗しました：' + (data && data.error ? data.error : '不明なエラー'));
