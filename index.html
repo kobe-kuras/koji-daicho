@@ -325,6 +325,15 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
 }
 .photo-add:hover{border-color:var(--accent); color:var(--accent);}
 .hint{font-size:.74rem; color:var(--ink-faint);}
+.settlement-row{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+.settlement-check{display:flex; align-items:center; gap:4px; font-size:.8rem; color:var(--ink-muted); cursor:pointer;}
+.settlement-check input{cursor:pointer;}
+.card .settlement-pill{
+  font-size:.68rem; font-weight:700; padding:1px 7px; border-radius:10px;
+  background:var(--surface-2); color:var(--ink-muted); border:1px solid var(--line);
+}
+.card .invoiced-check{display:flex; align-items:center; gap:3px; font-size:.7rem; color:var(--ink-muted); cursor:pointer;}
+.card .invoiced-check input{cursor:pointer;}
 .modal-actions{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px;}
 .modal-actions .right{display:flex; gap:8px;}
 
@@ -657,17 +666,24 @@ function renderBoard(){
 
   wrap.querySelectorAll('.card').forEach(el=>{
     el.addEventListener('click', (e)=>{
-      if (e.target.closest('.advance') || e.target.closest('.due-row')) return;
+      if (e.target.closest('.advance') || e.target.closest('.due-row') || e.target.closest('.invoiced-check')) return;
       openEditModal(el.dataset.id);
     });
     el.tabIndex = 0;
-    el.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.target.closest('.due-row')) openEditModal(el.dataset.id); });
+    el.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.target.closest('.due-row') && !e.target.closest('.invoiced-check')) openEditModal(el.dataset.id); });
   });
   wrap.querySelectorAll('.due-input').forEach(inp=>{
     inp.addEventListener('click', e=>e.stopPropagation());
     inp.addEventListener('change', e=>{
       e.stopPropagation();
       store.update(inp.dataset.id, { dueDate: e.target.value, updatedAt: new Date().toISOString() });
+    });
+  });
+  wrap.querySelectorAll('.invoiced-input').forEach(inp=>{
+    inp.addEventListener('click', e=>e.stopPropagation());
+    inp.addEventListener('change', e=>{
+      e.stopPropagation();
+      store.update(inp.dataset.id, { invoiced: e.target.checked, updatedAt: new Date().toISOString() });
     });
   });
   wrap.querySelectorAll('.advance:not(.closeout)').forEach(btn=>{
@@ -722,6 +738,7 @@ function cardHtml(j, s){
       <span class="cost">発注 ${fmtYen(cost)}</span>
       <span class="profit ${profit<0?'neg':profit>0?'pos':''}">利益 ${fmtYen(profit)}</span>
     </div>` : ''}
+    ${j.settlementType==='invoice' ? `<label class="invoiced-check"><input type="checkbox" class="invoiced-input" data-id="${esc(j.id)}" ${j.invoiced?'checked':''}> 請求済み</label>` : ''}
     <div class="due-row">
       <label for="due-${esc(j.id)}">完工予定</label>
       <input type="date" class="due-input" id="due-${esc(j.id)}" data-id="${esc(j.id)}" value="${esc(j.dueDate||'')}">
@@ -729,6 +746,7 @@ function cardHtml(j, s){
     <div class="foot">
       <span class="badges">
         ${j.isSample ? '<span class="sample-pill">サンプル</span>' : ''}
+        ${j.settlementType ? `<span class="settlement-pill">${j.settlementType==='offset'?'相殺':'請求'}</span>` : ''}
         ${j.assignee ? '担当:'+esc(j.assignee) : ''}
         ${photoCount ? '📷'+photoCount : ''}
         <span>登録 ${fmtCreated(j)}</span>
@@ -792,7 +810,11 @@ function renderModal(job, isNew){
         <div class="field">
           <label>発注業者・金額（複数可）</label>
           <div class="contractor-rows" id="contractorRows"></div>
-          <button type="button" class="btn btn-sm" id="addContractorBtn" style="align-self:flex-start;">＋ 業者を追加</button>
+          <div class="settlement-row">
+            <button type="button" class="btn btn-sm" id="addContractorBtn">＋ 業者を追加</button>
+            <label class="settlement-check"><input type="radio" name="f-settlement" value="offset" ${job.settlementType==='offset'?'checked':''}> 相殺</label>
+            <label class="settlement-check"><input type="radio" name="f-settlement" value="invoice" ${job.settlementType==='invoice'?'checked':''}> 請求</label>
+          </div>
         </div>
         <div class="field">
           <label for="f-billing">家主請求金額（円）</label>
@@ -912,6 +934,7 @@ function renderModal(job, isNew){
         .filter(c=>c.name.trim()!=='' || c.amount!=='')
         .map(c=>({name:c.name.trim(), amount:Number(c.amount||0)})),
       billingAmount: Number(document.getElementById('f-billing').value || 0),
+      settlementType: (document.querySelector('input[name="f-settlement"]:checked') || {}).value || '',
       orderDate: document.getElementById('f-orderDate').value,
       dueDate: document.getElementById('f-dueDate').value,
       assignee: document.getElementById('f-assignee').value.trim(),
