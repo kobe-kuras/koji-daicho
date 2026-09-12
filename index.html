@@ -1078,7 +1078,7 @@ function renderModal(job, isNew){
             body: JSON.stringify({ action:'getOrCreateEstimateSheet', id: current.id }),
           });
           const data = await res.json();
-          if (data && data.url){
+          if (data && typeof data.url === 'string' && /^https?:\/\//.test(data.url)){
             window.open(data.url, '_blank');
           } else {
             alert('見積書の作成に失敗しました：' + (data && data.error ? data.error : '不明なエラー'));
