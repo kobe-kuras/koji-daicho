@@ -280,14 +280,40 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
   font-size:.62rem; font-weight:700; color:#fff; background:rgba(20,22,26,0.62);
 }
 .photo-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+.photo-view{width:100%; height:100%; border:none; padding:0; margin:0; background:none; cursor:pointer; display:block;}
 .pdf-thumb{
   width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:3px; background:var(--surface-2); color:var(--ink-muted); text-decoration:none; font-size:1.3rem;
 }
 .pdf-thumb span{font-size:.6rem; font-weight:700; letter-spacing:.03em;}
-.photo-thumb button{
+.photo-thumb .thumb-delete{
   position:absolute; top:3px; right:3px; width:20px; height:20px; border-radius:50%; border:none;
   background:rgba(20,22,26,0.62); color:#fff; font-size:.72rem; line-height:1; cursor:pointer;
+}
+.lightbox-overlay{
+  display:none; position:fixed; inset:0; background:rgba(10,11,13,0.92); z-index:9999;
+  align-items:center; justify-content:center;
+}
+.lightbox-overlay.open{display:flex;}
+.lightbox-overlay img{max-width:90vw; max-height:86vh; object-fit:contain; border-radius:4px;}
+.lightbox-close{
+  position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:50%; border:none;
+  background:rgba(255,255,255,0.14); color:#fff; font-size:1.2rem; cursor:pointer;
+}
+.lightbox-close:hover{background:rgba(255,255,255,0.24);}
+.lightbox-prev, .lightbox-next{
+  position:absolute; top:50%; transform:translateY(-50%); width:48px; height:48px; border-radius:50%; border:none;
+  background:rgba(255,255,255,0.14); color:#fff; font-size:1.6rem; cursor:pointer; line-height:1;
+}
+.lightbox-prev:hover, .lightbox-next:hover{background:rgba(255,255,255,0.24);}
+.lightbox-prev{left:16px;}
+.lightbox-next{right:16px;}
+.lightbox-count{
+  position:absolute; bottom:18px; left:50%; transform:translateX(-50%); color:#fff; font-size:.8rem;
+  background:rgba(0,0,0,0.4); padding:3px 10px; border-radius:12px;
+}
+@media (max-width:640px){
+  .lightbox-prev, .lightbox-next{width:40px; height:40px; font-size:1.3rem;}
 }
 .photo-add{
   aspect-ratio:1; border-radius:8px; border:1.5px dashed var(--line-strong); background:transparent;
@@ -943,6 +969,72 @@ function updateProfitSummary(){
   profitEl.className = profit<0 ? 'neg' : profit>0 ? 'pos' : '';
 }
 
+let lightboxItems = [];
+let lightboxIndex = 0;
+
+function getLightboxOverlay(){
+  let overlay = document.getElementById('lightboxOverlay');
+  if (!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'lightboxOverlay';
+    overlay.className = 'lightbox-overlay';
+    document.body.appendChild(overlay);
+    let touchStartX = null;
+    overlay.addEventListener('touchstart', e=>{ touchStartX = e.touches[0].clientX; });
+    overlay.addEventListener('touchend', e=>{
+      if (touchStartX===null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      touchStartX = null;
+      if (Math.abs(dx) < 40) return;
+      dx < 0 ? lightboxNext() : lightboxPrev();
+    });
+    overlay.addEventListener('click', e=>{ if (e.target===overlay) closeLightbox(); });
+  }
+  return overlay;
+}
+
+function openLightbox(items, index){
+  lightboxItems = items;
+  lightboxIndex = index;
+  renderLightbox();
+}
+
+function closeLightbox(){
+  const overlay = document.getElementById('lightboxOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function lightboxPrev(){ lightboxIndex = (lightboxIndex - 1 + lightboxItems.length) % lightboxItems.length; renderLightbox(); }
+function lightboxNext(){ lightboxIndex = (lightboxIndex + 1) % lightboxItems.length; renderLightbox(); }
+
+function renderLightbox(){
+  const overlay = getLightboxOverlay();
+  const item = lightboxItems[lightboxIndex];
+  if (!item) return;
+  const src = item.url || ('/_blob/' + item.id);
+  overlay.innerHTML = `
+    <button type="button" class="lightbox-close" aria-label="閉じる">✕</button>
+    ${lightboxItems.length>1 ? `<button type="button" class="lightbox-prev" aria-label="前へ">‹</button>` : ''}
+    <img src="${src}" alt="添付写真">
+    ${lightboxItems.length>1 ? `<button type="button" class="lightbox-next" aria-label="次へ">›</button>` : ''}
+    ${lightboxItems.length>1 ? `<div class="lightbox-count">${lightboxIndex+1} / ${lightboxItems.length}</div>` : ''}
+  `;
+  overlay.classList.add('open');
+  overlay.querySelector('.lightbox-close').addEventListener('click', closeLightbox);
+  const prevBtn = overlay.querySelector('.lightbox-prev');
+  const nextBtn = overlay.querySelector('.lightbox-next');
+  if (prevBtn) prevBtn.addEventListener('click', lightboxPrev);
+  if (nextBtn) nextBtn.addEventListener('click', lightboxNext);
+}
+
+document.addEventListener('keydown', e=>{
+  const overlay = document.getElementById('lightboxOverlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') lightboxPrev();
+  if (e.key === 'ArrowRight') lightboxNext();
+});
+
 function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel, addLabel, uploadFailMsg, persist){
   // persist(list): optional — when editing an existing job, saves an upload/delete straight
   // to that job's record as soon as it happens, so it isn't lost if the modal is closed
@@ -953,20 +1045,28 @@ function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel,
   if (!grid) return;
   const canUpload = !!assetsApi;
   const list = getList();
-  grid.innerHTML = list.map(raw=>{
-    const item = typeof raw === 'string' ? {id:raw, type:'image'} : raw;
+  const normalized = list.map(raw => typeof raw === 'string' ? {id:raw, type:'image'} : raw);
+  const imageItems = normalized.filter(it => !((it.type||'').includes('pdf')));
+  grid.innerHTML = normalized.map(item=>{
     const isPdf = (item.type||'').includes('pdf');
     const src = item.url || ('/_blob/' + item.id); // item.url: Drive link, or a local preview while uploading
+    const imgIndex = isPdf ? -1 : imageItems.indexOf(item);
     return `<div class="photo-thumb${item.uploading?' uploading':''}">
       ${isPdf
         ? `<a href="${src}" target="_blank" rel="noopener" class="pdf-thumb">📄<span>PDF</span></a>`
-        : `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="添付ファイル"></a>`}
-      ${canUpload ? `<button data-id="${item.id}" aria-label="${deleteLabel}">✕</button>` : ''}
+        : `<button type="button" class="photo-view" data-img-index="${imgIndex}"><img src="${src}" alt="添付ファイル"></button>`}
+      ${canUpload ? `<button class="thumb-delete" data-id="${item.id}" aria-label="${deleteLabel}">✕</button>` : ''}
     </div>`;
   }).join('') + (canUpload ? `<button type="button" class="photo-add" aria-label="${addLabel}">＋</button>` : '');
   if (hint) hint.textContent = canUpload ? 'クリック、またはドラッグ＆ドロップで追加できます。' : 'ファイルの追加・削除はこの環境では利用できません（閲覧のみ）。';
 
-  grid.querySelectorAll('.photo-thumb button').forEach(btn=>{
+  grid.querySelectorAll('.photo-view').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      openLightbox(imageItems, Number(btn.dataset.imgIndex));
+    });
+  });
+
+  grid.querySelectorAll('.thumb-delete').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const id = btn.dataset.id;
       const newList = getList().filter(raw=>(typeof raw==='string'?raw:raw.id)!==id);
