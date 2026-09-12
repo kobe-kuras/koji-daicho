@@ -325,13 +325,18 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
 }
 .photo-add:hover{border-color:var(--accent); color:var(--accent);}
 .hint{font-size:.74rem; color:var(--ink-faint);}
-.settlement-row{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
-.settlement-check{display:flex; align-items:center; gap:4px; font-size:.8rem; color:var(--ink-muted); cursor:pointer;}
-.settlement-check input{cursor:pointer;}
-.card .settlement-pill{
-  font-size:.68rem; font-weight:700; padding:1px 7px; border-radius:10px;
-  background:var(--surface-2); color:var(--ink-muted); border:1px solid var(--line);
+.settlement-row{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.settlement-picker{display:flex; gap:8px;}
+.settlement-chip{
+  border:1.5px solid var(--line-strong); border-radius:20px; padding:5px 14px; font-size:.8rem; font-weight:700;
+  cursor:pointer; background:var(--surface-2); color:var(--ink-muted);
 }
+.settlement-chip[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
+.card .settlement-pill{
+  font-size:.68rem; font-weight:700; padding:1px 7px; border-radius:10px; border:1px solid transparent;
+}
+.card .settlement-pill.offset{background:var(--status-paid-soft); color:var(--status-paid);}
+.card .settlement-pill.invoice{background:var(--status-sales-soft); color:var(--status-sales);}
 .card .invoiced-check{display:flex; align-items:center; gap:3px; font-size:.7rem; color:var(--ink-muted); cursor:pointer;}
 .card .invoiced-check input{cursor:pointer;}
 .modal-actions{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px;}
@@ -746,7 +751,7 @@ function cardHtml(j, s){
     <div class="foot">
       <span class="badges">
         ${j.isSample ? '<span class="sample-pill">サンプル</span>' : ''}
-        ${j.settlementType ? `<span class="settlement-pill">${j.settlementType==='offset'?'相殺':'請求'}</span>` : ''}
+        ${j.settlementType ? `<span class="settlement-pill ${j.settlementType}">${j.settlementType==='offset'?'相殺':'請求'}</span>` : ''}
         ${j.assignee ? '担当:'+esc(j.assignee) : ''}
         ${photoCount ? '📷'+photoCount : ''}
         <span>登録 ${fmtCreated(j)}</span>
@@ -812,8 +817,10 @@ function renderModal(job, isNew){
           <div class="contractor-rows" id="contractorRows"></div>
           <div class="settlement-row">
             <button type="button" class="btn btn-sm" id="addContractorBtn">＋ 業者を追加</button>
-            <label class="settlement-check"><input type="radio" name="f-settlement" value="offset" ${job.settlementType==='offset'?'checked':''}> 相殺</label>
-            <label class="settlement-check"><input type="radio" name="f-settlement" value="invoice" ${job.settlementType==='invoice'?'checked':''}> 請求</label>
+            <div class="settlement-picker" id="settlementPicker">
+              <button type="button" class="settlement-chip" data-value="offset" aria-pressed="${job.settlementType==='offset'}">相殺</button>
+              <button type="button" class="settlement-chip" data-value="invoice" aria-pressed="${job.settlementType==='invoice'}">請求</button>
+            </div>
           </div>
         </div>
         <div class="field">
@@ -908,6 +915,14 @@ function renderModal(job, isNew){
     });
   });
 
+  let currentSettlement = job.settlementType || '';
+  root.querySelectorAll('.settlement-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      currentSettlement = currentSettlement === chip.dataset.value ? '' : chip.dataset.value;
+      root.querySelectorAll('.settlement-chip').forEach(c=>c.setAttribute('aria-pressed', c.dataset.value===currentSettlement));
+    });
+  });
+
   const savedJobId = isNew ? null : editingId; // captured now: stays correct even after this modal closes
   const persistField = field => savedJobId ? (list => store.update(savedJobId, {[field]: list})) : null;
   renderEstimateGrid(persistField('estimateDocs'));
@@ -934,7 +949,7 @@ function renderModal(job, isNew){
         .filter(c=>c.name.trim()!=='' || c.amount!=='')
         .map(c=>({name:c.name.trim(), amount:Number(c.amount||0)})),
       billingAmount: Number(document.getElementById('f-billing').value || 0),
-      settlementType: (document.querySelector('input[name="f-settlement"]:checked') || {}).value || '',
+      settlementType: currentSettlement,
       orderDate: document.getElementById('f-orderDate').value,
       dueDate: document.getElementById('f-dueDate').value,
       assignee: document.getElementById('f-assignee').value.trim(),
