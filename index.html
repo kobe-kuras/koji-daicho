@@ -938,6 +938,7 @@ function renderModal(job, isNew){
         <div class="modal-actions">
           <div style="display:flex; gap:8px;">
             ${isNew ? '' : `<button class="btn btn-sm" id="estimateBtn">📄 見積書を作成</button>`}
+            ${isNew ? '' : `<button class="btn btn-sm" id="invoiceBtn">📄 請求書を作成</button>`}
             ${isNew ? '' : `<button class="btn btn-danger btn-sm" id="deleteBtn">この工事を削除</button>`}
           </div>
           <div class="right">
@@ -1106,6 +1107,50 @@ function renderModal(job, isNew){
         }finally{
           estimateBtn.disabled = false;
           estimateBtn.textContent = originalText;
+        }
+      });
+    }
+
+    const invoiceBtn = document.getElementById('invoiceBtn');
+    if (invoiceBtn){
+      invoiceBtn.addEventListener('click', async ()=>{
+        const current = jobs.find(x=>x.id===editingId);
+        if (!current) return;
+        const newTab = window.open('', '_blank');
+        if (newTab && newTab.document){
+          newTab.document.write('<p style="font-family:sans-serif;padding:24px;">請求書を作成しています…</p>');
+        }
+        const originalText = invoiceBtn.textContent;
+        invoiceBtn.disabled = true;
+        invoiceBtn.textContent = '開いています…';
+        try{
+          const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'text/plain;charset=utf-8'},
+            body: JSON.stringify({ action:'getOrCreateInvoiceSheet', id: current.id }),
+          });
+          const data = await res.json();
+          if (data && typeof data.url === 'string' && /^https?:\/\//.test(data.url)){
+            if (newTab) newTab.location.href = data.url; else window.open(data.url, '_blank');
+            if (Array.isArray(data.invoiceDocs)){
+              pendingInvoiceDocs = data.invoiceDocs;
+              renderInvoiceGrid(false);
+              const idx = jobs.findIndex(x=>x.id===current.id);
+              if (idx !== -1) jobs[idx] = Object.assign({}, jobs[idx], { invoiceDocs: data.invoiceDocs });
+            }
+            if (data.pdfError){
+              alert('スプレッドシートは開けましたが、PDFの添付保存には失敗しました：' + data.pdfError);
+            }
+          } else {
+            if (newTab) newTab.close();
+            alert('請求書の作成に失敗しました：' + (data && data.error ? data.error : '不明なエラー'));
+          }
+        }catch(e){
+          if (newTab) newTab.close();
+          alert('請求書の作成に失敗しました。通信環境をご確認の上、もう一度お試しください。');
+        }finally{
+          invoiceBtn.disabled = false;
+          invoiceBtn.textContent = originalText;
         }
       });
     }
