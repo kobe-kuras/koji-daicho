@@ -631,6 +631,7 @@ function filteredJobs(){
 function renderBoard(){
   const list = filteredJobs();
   const wrap = document.getElementById('boardWrap');
+  const prevScrollLeft = wrap.querySelector('.board') ? wrap.querySelector('.board').scrollLeft : 0;
   if (activeJobs().length === 0){
     wrap.innerHTML = `<div class="board-empty"><p>まだ工事案件が登録されていません。</p>
       <button class="btn btn-primary" id="emptyNewBtn">＋ 最初の工事を登録する</button></div>`;
@@ -651,6 +652,8 @@ function renderBoard(){
       </div>
     </div>`;
   }).join('')}</div>`;
+  const boardEl = wrap.querySelector('.board');
+  if (boardEl) boardEl.scrollLeft = prevScrollLeft;
 
   wrap.querySelectorAll('.card').forEach(el=>{
     el.addEventListener('click', (e)=>{
