@@ -960,7 +960,7 @@ function renderAttachGrid(gridId, hintId, getList, setList, accept, deleteLabel,
     return `<div class="photo-thumb${item.uploading?' uploading':''}">
       ${isPdf
         ? `<a href="${src}" target="_blank" rel="noopener" class="pdf-thumb">📄<span>PDF</span></a>`
-        : `<img src="${src}" alt="添付ファイル">`}
+        : `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="添付ファイル"></a>`}
       ${canUpload ? `<button data-id="${item.id}" aria-label="${deleteLabel}">✕</button>` : ''}
     </div>`;
   }).join('') + (canUpload ? `<button type="button" class="photo-add" aria-label="${addLabel}">＋</button>` : '');
