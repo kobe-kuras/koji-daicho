@@ -1187,7 +1187,7 @@ async function enableNotifications(silent){
     messaging.onMessage((payload)=>{
       const title = (payload.notification && payload.notification.title) || '工事台帳';
       const body = (payload.notification && payload.notification.body) || '';
-      try{ new Notification(title, { body }); }catch(e){}
+      try{ new Notification(title, { body, requireInteraction: true }); }catch(e){}
     });
   } catch(err){
     console.error('notification setup failed', err);
