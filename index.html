@@ -29,6 +29,8 @@
   --status-quote-soft:#EFEBE2;
   --status-ordered:#2A5C8A;
   --status-ordered-soft:#E4EDF5;
+  --status-sales:#B8792F;
+  --status-sales-soft:#F5E9D8;
   --status-done:#3D7A55;
   --status-done-soft:#E4F1E8;
   --status-paid:#6552A0;
@@ -57,6 +59,8 @@
     --status-quote-soft:#33322B;
     --status-ordered:#7FADD6;
     --status-ordered-soft:#22303F;
+    --status-sales:#D9A75E;
+    --status-sales-soft:#3A2E1C;
     --status-done:#79C296;
     --status-done-soft:#20362A;
     --status-paid:#B0A2DE;
@@ -157,7 +161,7 @@ body{
 .sample-note button{margin-left:auto;}
 
 /* board */
-.board{display:grid; grid-template-columns:repeat(4,minmax(250px,1fr)); gap:14px; overflow-x:auto; padding-bottom:8px;}
+.board{display:grid; grid-template-columns:repeat(5,minmax(250px,1fr)); gap:14px; overflow-x:auto; padding-bottom:8px;}
 .column{background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:10px; min-height:120px; display:flex; flex-direction:column; gap:10px;}
 .column-head{display:flex; align-items:baseline; justify-content:space-between; padding:4px 4px 6px; border-bottom:2px solid var(--col-color); }
 .column-head .name{font-weight:700; font-size:.9rem; display:flex; align-items:center; gap:7px;}
@@ -383,6 +387,7 @@ table.archive-table .desc-cell{white-space:normal; max-width:260px; color:var(--
 const STATUSES = [
   { key:'quote',       label:'見積中',   color:'var(--status-quote)',    soft:'var(--status-quote-soft)' },
   { key:'ordered',     label:'発注済',   color:'var(--status-ordered)',  soft:'var(--status-ordered-soft)' },
+  { key:'sales',       label:'売上未入力', color:'var(--status-sales)',  soft:'var(--status-sales-soft)' },
   { key:'done',        label:'完工',     color:'var(--status-done)',     soft:'var(--status-done-soft)' },
   { key:'paid',        label:'入金済み', color:'var(--status-paid)',     soft:'var(--status-paid-soft)' },
 ];
