@@ -883,7 +883,10 @@ function renderModal(job, isNew){
           <textarea id="f-notes" placeholder="申し送り事項など">${esc(job.notes)}</textarea>
         </div>
         <div class="modal-actions">
-          <div>${isNew ? '' : `<button class="btn btn-danger btn-sm" id="deleteBtn">この工事を削除</button>`}</div>
+          <div style="display:flex; gap:8px;">
+            ${isNew ? '' : `<button class="btn btn-sm" id="estimateBtn">📄 見積書を作成</button>`}
+            ${isNew ? '' : `<button class="btn btn-danger btn-sm" id="deleteBtn">この工事を削除</button>`}
+          </div>
           <div class="right">
             <button class="btn" id="cancelBtn">キャンセル</button>
             <button class="btn btn-primary" id="saveBtn">${isNew ? '登録する' : '保存する'}</button>
@@ -1004,6 +1007,27 @@ function renderModal(job, isNew){
         clearTimeout(armTimer);
         store.remove(editingId);
         closeModal();
+      });
+    }
+
+    const estimateBtn = document.getElementById('estimateBtn');
+    if (estimateBtn){
+      estimateBtn.addEventListener('click', async ()=>{
+        estimateBtn.disabled = true;
+        estimateBtn.textContent = '準備中…';
+        try{
+          const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action:'selectEstimateJob', id: editingId }),
+          }).then(r=>r.json());
+          if (res.url) window.open(res.url, '_blank');
+          else alert('見積書の準備に失敗しました。');
+        } catch(e){
+          alert('見積書の準備に失敗しました。');
+        }
+        estimateBtn.disabled = false;
+        estimateBtn.textContent = '📄 見積書を作成';
       });
     }
   }
