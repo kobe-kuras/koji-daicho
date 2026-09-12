@@ -456,9 +456,9 @@ table.estimate-info td{border:1px solid #222; padding:8px 10px;}
 const STATUSES = [
   { key:'quote',       label:'見積中',   color:'var(--status-quote)',    soft:'var(--status-quote-soft)' },
   { key:'ordered',     label:'発注済',   color:'var(--status-ordered)',  soft:'var(--status-ordered-soft)' },
-  { key:'sales',       label:'売上未入力', color:'var(--status-sales)',  soft:'var(--status-sales-soft)' },
+  { key:'sales',       label:'売上未',   color:'var(--status-sales)',  soft:'var(--status-sales-soft)' },
   { key:'done',        label:'完工',     color:'var(--status-done)',     soft:'var(--status-done-soft)' },
-  { key:'paid',        label:'入金済み', color:'var(--status-paid)',     soft:'var(--status-paid-soft)' },
+  { key:'paid',        label:'入金済',   color:'var(--status-paid)',     soft:'var(--status-paid-soft)' },
 ];
 const statusByKey = Object.fromEntries(STATUSES.map(s=>[s.key,s]));
 // Google Apps Script Web App URL (see Code.gs) — paste the deployed /exec URL here so
@@ -777,7 +777,7 @@ function cardHtml(j, s){
   if (j.status === 'paid'){
     actionBtn = `<button class="advance closeout" data-id="${esc(j.id)}">計上済みにする</button>`;
   } else if (j.status === 'done'){
-    actionBtn = `<button class="advance" data-id="${esc(j.id)}">入金済みにする</button>`;
+    actionBtn = `<button class="advance" data-id="${esc(j.id)}">入金済にする</button>`;
   } else if (next){
     actionBtn = `<button class="advance" data-id="${esc(j.id)}">→ ${next.label}</button>`;
   }
