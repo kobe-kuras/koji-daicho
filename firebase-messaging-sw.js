@@ -15,7 +15,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   const title = (payload.notification && payload.notification.title) || '工事台帳';
   const body = (payload.notification && payload.notification.body) || '';
-  self.registration.showNotification(title, { body: body });
+  self.registration.showNotification(title, { body: body, requireInteraction: true });
   if ('setAppBadge' in navigator) {
     navigator.setAppBadge().catch(()=>{});
   }
