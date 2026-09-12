@@ -1068,6 +1068,12 @@ function renderModal(job, isNew){
       estimateBtn.addEventListener('click', async ()=>{
         const current = jobs.find(x=>x.id===editingId);
         if (!current) return;
+        // クリック直後(同期的)にタブを先に開いておかないと、Driveコピー等で時間が
+        // かかった場合にブラウザのポップアップブロックに引っかかってしまうため。
+        const newTab = window.open('', '_blank');
+        if (newTab && newTab.document){
+          newTab.document.write('<p style="font-family:sans-serif;padding:24px;">見積書を作成しています…</p>');
+        }
         const originalText = estimateBtn.textContent;
         estimateBtn.disabled = true;
         estimateBtn.textContent = '開いています…';
@@ -1079,11 +1085,13 @@ function renderModal(job, isNew){
           });
           const data = await res.json();
           if (data && typeof data.url === 'string' && /^https?:\/\//.test(data.url)){
-            window.open(data.url, '_blank');
+            if (newTab) newTab.location.href = data.url; else window.open(data.url, '_blank');
           } else {
+            if (newTab) newTab.close();
             alert('見積書の作成に失敗しました：' + (data && data.error ? data.error : '不明なエラー'));
           }
         }catch(e){
+          if (newTab) newTab.close();
           alert('見積書の作成に失敗しました。通信環境をご確認の上、もう一度お試しください。');
         }finally{
           estimateBtn.disabled = false;
