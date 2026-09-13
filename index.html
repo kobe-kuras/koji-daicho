@@ -531,13 +531,13 @@ function makeGasStore(apiUrl){
   }
   function notify(){ listeners.forEach(fn=>fn(cache)); }
   fetchList();
-  setInterval(fetchList, 8000);
+  setInterval(fetchList, 3000);
   return {
     subscribe(fn){ listeners.add(fn); fn(cache); return ()=>listeners.delete(fn); },
     // Apps Script itself takes ~1.5-2s per call — nothing client-side changes that. So
     // these apply the change to the local cache and notify listeners FIRST (instant UI),
     // then send it to the server in the background and roll back only on failure. The
-    // 8s background poll reconciles with the server and other viewers either way.
+    // 3s background poll reconciles with the server and other viewers either way.
     async add(data){
       const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
       const now = new Date().toISOString();
@@ -1090,7 +1090,7 @@ function renderModal(job, isNew){
             if (Array.isArray(data.estimateDocs)){
               pendingEstimateDocs = data.estimateDocs;
               renderEstimateGrid(false);
-              // バックグラウンドの8秒ポーリングを待たずに、他の画面のキャッシュも合わせておく
+              // バックグラウンドの3秒ポーリングを待たずに、他の画面のキャッシュも合わせておく
               const idx = jobs.findIndex(x=>x.id===current.id);
               if (idx !== -1) jobs[idx] = Object.assign({}, jobs[idx], { estimateDocs: data.estimateDocs });
             }
