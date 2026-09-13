@@ -1586,7 +1586,11 @@ async function enableNotifications(silent){
     messaging.onMessage((payload)=>{
       const title = (payload.notification && payload.notification.title) || '工事台帳';
       const body = (payload.notification && payload.notification.body) || '';
-      try{ new Notification(title, { body, requireInteraction: true }); }catch(e){}
+      // タブを開いている間(フォアグラウンド)も、閉じている時(バックグラウンド)と
+      // 同じService Worker経由の通知に統一する。見え方・消え方をパソコンごとに揃えるため。
+      registration.showNotification(title, { body, requireInteraction: true }).catch(()=>{
+        try{ new Notification(title, { body, requireInteraction: true }); }catch(e){}
+      });
     });
   } catch(err){
     console.error('notification setup failed', err);
