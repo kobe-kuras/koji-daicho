@@ -393,6 +393,7 @@ table.estimate-info td{border:1px solid #222; padding:8px 10px;}
 .card .settlement-pill.invoice{background:var(--status-sales-soft); color:var(--status-sales);}
 .card .invoiced-check{display:flex; align-items:center; gap:3px; font-size:.7rem; color:var(--ink-muted); cursor:pointer;}
 .card .invoiced-check input{cursor:pointer;}
+.card .invoiced-check .invoiced-date{margin-left:2px; color:var(--ink-muted);}
 .modal-actions{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px;}
 .modal-actions .right{display:flex; gap:8px;}
 
@@ -744,7 +745,12 @@ function renderBoard(){
     inp.addEventListener('click', e=>e.stopPropagation());
     inp.addEventListener('change', e=>{
       e.stopPropagation();
-      store.update(inp.dataset.id, { invoiced: e.target.checked, updatedAt: new Date().toISOString() });
+      const checked = e.target.checked;
+      store.update(inp.dataset.id, {
+        invoiced: checked,
+        invoicedAt: checked ? new Date().toISOString() : '',
+        updatedAt: new Date().toISOString(),
+      });
     });
   });
   wrap.querySelectorAll('.advance:not(.closeout)').forEach(btn=>{
@@ -799,7 +805,7 @@ function cardHtml(j, s){
       <span class="cost">発注 ${fmtYen(cost)}</span>
       <span class="profit ${profit<0?'neg':profit>0?'pos':''}">利益 ${fmtYen(profit)}</span>
     </div>` : ''}
-    ${j.settlementType==='invoice' ? `<label class="invoiced-check"><input type="checkbox" class="invoiced-input" data-id="${esc(j.id)}" ${j.invoiced?'checked':''}> 請求済み</label>` : ''}
+    ${j.settlementType==='invoice' ? `<label class="invoiced-check"><input type="checkbox" class="invoiced-input" data-id="${esc(j.id)}" ${j.invoiced?'checked':''}> 請求済み${j.invoiced && j.invoicedAt ? `<span class="invoiced-date">${esc(fmtDate(j.invoicedAt.slice(0,10)))}</span>` : ''}</label>` : ''}
     <div class="due-row">
       <label for="due-${esc(j.id)}">完工予定</label>
       <input type="date" class="due-input" id="due-${esc(j.id)}" data-id="${esc(j.id)}" value="${esc(j.dueDate||'')}">
