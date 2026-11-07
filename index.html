@@ -467,8 +467,8 @@ table.estimate-info td{border:1px solid #222; padding:8px 10px;}
 const STATUSES = [
   { key:'quote',       label:'見積中',   color:'var(--status-quote)',    soft:'var(--status-quote-soft)' },
   { key:'ordered',     label:'発注済',   color:'var(--status-ordered)',  soft:'var(--status-ordered-soft)' },
-  { key:'sales',       label:'売上未',   color:'var(--status-sales)',  soft:'var(--status-sales-soft)' },
-  { key:'done',        label:'完工',     color:'var(--status-done)',     soft:'var(--status-done-soft)' },
+  { key:'sales',       label:'完工',     color:'var(--status-sales)',  soft:'var(--status-sales-soft)' },
+  { key:'done',        label:'請求済',   color:'var(--status-done)',     soft:'var(--status-done-soft)' },
   { key:'paid',        label:'入金済',   color:'var(--status-paid)',     soft:'var(--status-paid-soft)' },
 ];
 const statusByKey = Object.fromEntries(STATUSES.map(s=>[s.key,s]));
@@ -570,7 +570,10 @@ function makeGasStore(apiUrl){
     try{
       const res = await fetch(apiUrl + '?action=list');
       const data = await res.json();
-      cache = Array.isArray(data) ? data : [];
+      // サーバーが一時的にエラー(配列でない応答)を返した時は、直前の表示をそのまま維持する。
+      // 空の一覧で上書きすると、案件が全部消えたように見えてしまうため。
+      if (!Array.isArray(data)) return;
+      cache = data;
       listeners.forEach(fn=>fn(cache));
     }catch(e){ /* keep showing last known data; next poll retries */ }
   }
