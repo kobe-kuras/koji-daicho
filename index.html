@@ -1782,7 +1782,41 @@ function clearAppBadge(){
   }
 }
 
+/* ---------- auto update ---------- */
+// 開きっぱなしの古い画面を、新しい版が公開されたら自動で読み込み直す。
+// この画面を読み込んだ時点のファイルの更新日時(document.lastModified)と、サーバー上の
+// 最新の更新日時を比べて、違っていれば再読み込みする。入力中・アップロード中は待つ。
+function startAutoUpdate(){
+  const loadedAt = Date.parse(document.lastModified);
+  if (!loadedAt) return;
+  let checking = false;
+  async function check(){
+    if (checking) return;
+    checking = true;
+    try{
+      const base = location.href.split('#')[0].split('?')[0];
+      const res = await fetch(base + '?_=' + Date.now(), { method:'HEAD', cache:'no-store' });
+      const lm = res.headers.get('Last-Modified');
+      const latest = lm ? Date.parse(lm) : 0;
+      if (!latest || Math.abs(latest - loadedAt) < 1000) return;
+      if (editingId || uploadManager.pending() > 0) return; // 次のチェックでやり直す
+      let last = 0;
+      try{ last = Number(sessionStorage.getItem('koji_auto_reload') || 0); }catch(e){}
+      if (Date.now() - last < 120000) return; // 万一の繰り返し防止
+      try{ sessionStorage.setItem('koji_auto_reload', String(Date.now())); }catch(e){}
+      showToast('新しい版に更新しています…');
+      setTimeout(()=>location.reload(), 800);
+    }catch(e){ /* 通信できない時は何もしない */ }
+    finally{ checking = false; }
+  }
+  setInterval(check, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', ()=>{ if (document.visibilityState === 'visible') check(); });
+  window.addEventListener('focus', check);
+  setTimeout(check, 30 * 1000);
+}
+
 async function boot(){
+  startAutoUpdate();
   document.getElementById('newJobBtn').addEventListener('click', openNewModal);
   document.getElementById('notifBtn').addEventListener('click', ()=>enableNotifications(false));
   clearAppBadge();

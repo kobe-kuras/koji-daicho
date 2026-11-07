@@ -1,3 +1,18 @@
+// このファイルが新しくなると、ブラウザが自動で気づいて入れ替わる(画面を開いた時や通知が届いた時)。
+// その時、開きっぱなしで今見ていない古い画面を自動で読み込み直して、最新の版にする。
+// (今まさに見ている・入力中かもしれない画面は、そのままにする)
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    await self.clients.claim();
+    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of list) {
+      // 読み込み直しの完了は待たない(待つと、通知用プログラムの切り替えが遅れるため)
+      if (!c.focused && 'navigate' in c) c.navigate(c.url).catch(() => {});
+    }
+  })());
+});
+
 importScripts('https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.1/firebase-messaging-compat.js');
 
